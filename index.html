@@ -1,114 +1,125 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="referrer" content="no-referrer" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'none'; connect-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'" />
-<title>비밀편지 · 간편 실험</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'none'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#f7f7f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="비밀편지">
+<title>비밀편지 · 한 화면 시제품</title>
 <style>
-:root{color-scheme:light;--ink:#1f2832;--muted:#65717b;--bg:#f7f7f6;--white:#fff;--line:#e0e2e3;--main:#303f4a;--accent:#ebf0ed;--red:#a43832}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.55}main{max-width:550px;margin:auto;padding:28px 16px 72px}h1{font-size:28px;letter-spacing:-.05em;margin:0 0 5px}h2{font-size:22px;letter-spacing:-.045em;margin:0 0 10px}.subtitle,.muted,small{color:var(--muted)}.subtitle{margin:0 0 26px;font-size:14px}.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:22px;margin:12px 0}.hidden{display:none!important}button,select,textarea,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:13px 15px;min-height:52px;background:white;color:var(--ink);font-size:16px;font-weight:700}button.primary{background:var(--main);border-color:var(--main);color:white}button:disabled{opacity:.43;cursor:not-allowed}.wide{width:100%}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1 1 120px}label{display:block;font-size:14px;font-weight:750;margin:19px 0 7px}textarea,select{width:100%;background:white;border:1px solid #cbd0d5;border-radius:12px;padding:13px;color:var(--ink)}textarea{resize:vertical;min-height:120px;font-size:16px}textarea.keys{min-height:90px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}select{font-size:17px;min-height:48px}.help{font-size:13px;color:var(--muted);margin:8px 0}.callout{border-radius:13px;background:#eef2f3;padding:12px 14px;font-size:14px}.link{word-break:break-all;font-size:12px;background:#f5f7f7;border:1px solid var(--line);padding:12px;border-radius:10px;max-height:100px;overflow:auto;user-select:all;margin:10px 0}.status{color:var(--muted);font-size:13px;margin-top:10px;white-space:pre-wrap}.status.error{color:var(--red)}.status.success{color:#28654b}.divider{border:0;border-top:1px solid var(--line);margin:20px 0}a{color:#215577}details{margin:20px 2px;font-size:13px;color:var(--muted)}summary{cursor:pointer}.count{font-size:55px;font-weight:850;text-align:center;line-height:1.35;font-variant-numeric:tabular-nums;letter-spacing:-.06em;margin:2px 0 15px}.letter{padding:20px;background:var(--accent);border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;min-height:100px;font-size:18px;margin:12px 0 18px}.largeText{font-size:18px}.demo{margin-top:20px;text-align:center}.demo button{font-size:14px;min-height:42px;padding:9px 15px}.flag{font-size:12px;font-weight:700;color:#596b74;letter-spacing:.08em;margin-bottom:8px}.notice{font-size:12px;color:var(--muted);margin:22px 4px 0}.expired{font-size:23px;font-weight:800;text-align:center;margin:12px 0}.topback{border:0;background:transparent;padding:0 0 15px;min-height:20px;color:#5a656e;font-size:14px;text-align:left}.center{text-align:center}.badge{display:inline-block;background:#edf1f3;border-radius:20px;padding:3px 10px;font-size:13px;color:#435760;margin:8px 0 12px}#progress{height:7px;background:#e2e6e5;border-radius:9px;overflow:hidden}#progressFill{height:100%;background:#678e7e;width:100%}.choice{display:grid;gap:12px}
+:root{color-scheme:light;--bg:#f7f7f5;--ink:#202c31;--muted:#68777b;--line:#e3e6e5;--green:#28493f;--red:#c72d42;--pale:#f1f5f2}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;margin:0;line-height:1.5}main{max-width:560px;margin:auto;padding:18px 15px 72px}header{display:flex;align-items:center;gap:10px;margin:5px 0 16px}header .logo{font-size:28px}h1{font-size:24px;letter-spacing:-.05em;line-height:1.3;margin:0}h2{font-size:20px;letter-spacing:-.03em;margin:0 0 8px}p{margin:7px 0}.muted{color:var(--muted)}.small{font-size:12px}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin:12px 0}.hidden{display:none!important}label{display:block;font-weight:750;margin:15px 0 8px;font-size:14px}label:first-child{margin-top:0}textarea,input,button,select{font:inherit}textarea,input{border:1px solid #ccd3d1;border-radius:12px;padding:12px;color:var(--ink);background:white;width:100%;font-size:16px}textarea{resize:vertical;min-height:145px}input{min-height:46px}button{border:1px solid #cbd3d1;background:white;color:var(--ink);border-radius:11px;padding:11px 13px;min-height:45px;font-weight:760;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}button.primary{background:var(--green);border-color:var(--green);color:#fff}button.red{background:var(--red);border-color:var(--red);color:white}button.wide{width:100%}.row{display:flex;gap:9px}.row>*{flex:1}.choices{display:flex;gap:6px}.choices button{flex:1;padding:8px 4px;font-size:14px}.choices button[aria-pressed="true"]{background:#e7f0ea;border-color:#6b9584;color:#18392e}.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.modes label{margin:0;border:1px solid #cbd3d1;border-radius:11px;padding:10px 11px;font-size:13px;font-weight:700;cursor:pointer}.modes label:has(input:checked){background:#eaf0ed;border-color:#618b79}.modes input{width:auto;min-height:auto;accent-color:var(--green);margin-right:4px}.help{font-size:12px;color:var(--muted);line-height:1.5}.error{color:#ad2636}.success{color:#216845}.note{border-left:3px solid #bdc5c2;padding-left:11px}.result{background:var(--pale);border:1px solid #dae6de;border-radius:13px;padding:13px;margin-top:13px}.result strong{display:block;font-size:17px;margin:0 0 10px}.person{padding:10px 0;border-top:1px solid #dae3de}.person:first-of-type{border-top:0}.person .name{font-weight:760}.sendrow{display:flex;gap:8px;margin-top:9px}.sendrow button{flex:1}.timer{font-size:54px;font-weight:820;letter-spacing:-.06em;text-align:center;font-variant-numeric:tabular-nums}.letter{white-space:pre-wrap;overflow-wrap:anywhere;background:#eff4ef;border-radius:12px;padding:18px;min-height:118px;font-size:17px;line-height:1.7;margin:12px 0}.bar{height:6px;background:#e1e7e3;border-radius:12px;overflow:hidden}.bar span{display:block;background:#6a9785;height:100%;width:100%}.reply{margin-top:15px;font-size:18px;min-height:55px}.expired{text-align:center;font-weight:850;font-size:20px;padding:20px 0}.topline{margin:13px 0 22px}.center{text-align:center}details{font-size:12px;color:var(--muted);margin:20px 0}summary{cursor:pointer;padding:6px}#status{font-size:13px;min-height:16px}#saveTip{font-size:12px;color:var(--muted)}.simple{padding:3px 0 0}#installPanel{background:#fff2f2;border:1px solid #f0d1d5;border-radius:15px;padding:15px;margin-top:12px}#installPanel .help{color:#674b4c}.idnote{font-size:12px;color:var(--muted)}.linkbox{font-size:10px;overflow-wrap:anywhere;max-height:70px;overflow:auto;background:#fff;padding:8px;border:1px solid var(--line);border-radius:9px}a{color:var(--green)}
+@media(max-width:390px){main{padding:12px 10px 60px}.card{padding:14px}.choices button{font-size:12px;padding:7px 2px}}
 </style>
 </head>
-<body>
-<main>
-<header id="mast"><div class="flag">SECRET LETTER · TEST</div><h1>비밀편지</h1><p class="subtitle">편지를 열면 정해진 시간만 보여요.</p></header>
-
-<section id="home" class="panel">
- <h2>무엇을 할까요?</h2>
- <div class="choice">
-  <button id="toWrite" class="primary wide">✉️ 편지 쓰기</button>
-  <button id="toReady" class="wide">🔑 편지 받을 준비</button>
- </div>
- <div class="demo"><button id="tryDemo">혼자 시험</button> <button id="tryGroup">단톡방 시험(2명)</button></div>
+<body><main>
+<header><span class="logo" aria-hidden="true">✉️</span><div><h1>비밀편지</h1><div class="help">쓰고 · 보내고 · 정해진 시간만 읽어요</div></div></header>
+<section id="compose" class="card">
+<label for="bodyInput">편지 쓰기</label>
+<textarea id="bodyInput" placeholder="하고 싶은 말을 적어 주세요" maxlength="350" spellcheck="true"></textarea>
+<label>읽는 시간</label>
+<div class="choices" role="group" aria-label="읽는 시간 선택"><button data-seconds="30" aria-pressed="true">30초</button><button data-seconds="60" aria-pressed="false">1분</button><button data-seconds="180" aria-pressed="false">3분</button><button data-seconds="300" aria-pressed="false">5분</button></div>
+<label>어디로 보낼까요?</label>
+<div class="modes" role="group" aria-label="보내는 방식"><label><input type="radio" name="mode" value="group" checked> 단톡방 (링크 하나)</label><label><input type="radio" name="mode" value="private"> 친구별 (각자 링크)</label></div>
+<div id="groupHelp" class="help" style="margin-top:7px">단톡방에 링크 하나를 올리세요. 링크를 가진 사람은 누구나 열 수 있습니다.</div>
+<div id="privateSection" class="hidden"><label for="recipients">받는 사람 이름</label><input id="recipients" maxlength="140" placeholder="예: 민수, 영희, 철수" autocomplete="off"><p class="help">쉼표로 나누어 입력하세요. 최대 8명. 각자 다른 비밀키와 링크가 자동 생성됩니다.</p></div>
+<button id="generate" type="button" class="primary wide" style="margin-top:20px;font-size:17px;min-height:53px">비밀편지 보내기</button>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="result" class="result hidden" aria-live="polite"><strong id="resultTitle">준비됐어요!</strong><div id="linkList"></div><p id="saveTip"></p></div>
 </section>
-
-<section id="writer" class="panel hidden">
- <button class="topback" data-back="home">← 처음으로</button>
- <h2>비밀편지 쓰기</h2>
- <label for="msg">편지 내용</label>
- <textarea id="msg" maxlength="400" placeholder="친구에게 보낼 말을 적으세요"></textarea>
- <label for="duration">읽을 수 있는 시간</label>
- <select id="duration"><option value="30">30초</option><option value="60">1분</option><option value="180">3분</option><option value="300">5분</option></select>
- <label for="keys">받는 사람의 공개열쇠 링크</label>
- <textarea id="keys" class="keys" spellcheck="false" placeholder="친구가 보내준 링크를 붙여넣으세요.\n단톡방이라면 친구별 링크를 한 줄에 하나씩 넣으세요."></textarea>
- <p class="help">단톡방에서는 친구별 공개열쇠를 모아 <b>링크 하나</b>를 만듭니다. 최대 8명 실험용입니다.</p>
- <button id="make" class="primary wide">비밀편지 링크 만들기</button>
- <div class="status" id="writeStatus"></div>
- <div id="outBox" class="hidden"><hr class="divider"><h2>완성!</h2><p class="help" id="audience"></p><div class="link" id="letterUrl"></div><div class="row"><button id="shareLetter" class="primary">카카오톡 등으로 공유</button><button id="copyLetter">링크 복사</button></div><p class="help" id="linkWarning"></p></div>
+<section id="readingPage" class="card hidden">
+<div id="beforeRead"><h2>비밀편지가 도착했어요</h2><p class="muted" id="limitText">열면 30초 동안만 볼 수 있어요.</p><button class="primary wide" id="readBtn" style="margin-top:14px;font-size:18px;min-height:54px">편지 열기</button></div>
+<div id="whileRead" class="hidden"><div id="timer" class="timer">00:30</div><div class="bar"><span id="barFill"></span></div><div id="secretText" class="letter"></div><p class="help">다른 화면으로 이동하면 편지가 바로 닫힙니다.</p><button id="endBtn" class="wide">지금 닫기</button></div>
+<div id="afterRead" class="hidden"><p class="expired">🔒 편지가 사라졌어요</p><p class="help center">이 브라우저에서는 다시 열 수 없어요.</p></div>
+<button id="replyBtn" class="red wide reply" type="button">↩ 답장하기</button>
+<div id="installPanel" class="hidden"><strong>답장하려면 앱을 설치해 주세요</strong><p class="help">실험판에서는 웹앱을 홈 화면에 설치할 수 있어요. 설치하면 새 비밀편지를 만들 수 있습니다.</p><button id="installBtn" class="red wide" type="button">비밀편지 앱 설치하기</button><p id="installHelp" class="help"></p><button id="tryWebBtn" class="wide" type="button">실험용으로 웹에서 쓰기</button></div>
+<p id="readInfo" role="status" class="help"></p>
 </section>
-
-<section id="receiver" class="panel hidden">
- <button class="topback" data-back="home">← 처음으로</button>
- <h2>편지 받을 준비</h2>
- <p class="largeText">아래 버튼을 눌러 열쇠를 만든 뒤 친구에게 링크를 보내세요.</p>
- <button id="ready" class="primary wide">내 공개열쇠 만들기</button>
- <div id="inviteBox" class="hidden"><hr class="divider"><p class="callout">이 링크는 친구에게 보내도 안전한 <b>공개열쇠</b>입니다. 진짜 해독 열쇠는 현재 브라우저 안에 남습니다.</p><div class="link" id="inviteUrl"></div><div class="row"><button id="shareInvite" class="primary">카카오톡 등으로 보내기</button><button id="copyInvite">링크 복사</button></div></div>
- <div class="status" id="readyStatus"></div>
- <p class="help">현재 실험판은 <b>편지 한 통당 새 공개열쇠</b>가 필요합니다. 만든 브라우저에서 편지를 열어야 합니다.</p>
-</section>
-
-<section id="incoming" class="panel hidden" aria-live="polite">
- <h2>✉️ 비밀편지가 왔어요</h2>
- <div id="before"><p>읽기 시작하면 <b id="selectedTime">30초</b> 뒤 사라집니다.</p><button id="openLetter" class="primary wide">비밀편지 열기</button></div>
- <div id="reading" class="hidden"><div class="count" id="clock">00:30</div><div id="progress"><div id="progressFill"></div></div><div class="letter" id="letterBody"></div><p class="help">다른 화면으로 이동하면 즉시 닫힙니다.</p><button id="closeNow" class="wide">지금 닫기</button></div>
- <div id="done" class="hidden"><p class="expired">🔒 편지가 사라졌어요</p><p class="center muted">이 브라우저에서는 해당 열쇠를 다시 사용할 수 없습니다.</p><button id="retry" class="wide">다시 열어보기</button><div id="demoNext" class="hidden"><p class="help">단톡방 실험: 다른 사람의 열쇠는 아직 남아 있습니다.</p><button id="nextReader" class="primary wide">다른 사람도 열어보기 (시험)</button></div></div>
- <div class="status" id="readStatus"></div>
-</section>
-
-<details><summary>이 실험판에 대한 안내</summary><p>회원가입·메시지 서버 없이 휴대전화 브라우저에서 암호화/복호화합니다. 공개열쇠는 수신자에게서 먼저 받아야 합니다. 한 통을 여러 명에게 보내면 각자 자기 열쇠로 <b>독립적으로</b> 한 번 읽을 수 있습니다.</p><p>열람 시작 때 일회용 해독 열쇠를 브라우저 저장소에서 소모합니다. 하지만 미리 복사한 열쇠, 백업, 브라우저 변조까지 통제하는 영구 복구 불가 기능은 아닙니다. 실제 비밀이나 개인정보를 입력하지 마세요. 카카오톡 내부 브라우저와 크롬은 저장소가 달라 열쇠를 찾지 못할 수 있습니다. 링크가 길어지면 단톡방 공유가 실패할 수 있습니다.</p></details>
-<p class="notice" id="env">브라우저의 암호화 기능 확인 중…</p>
-</main>
-<script>
+<details><summary>실험판 안내 · 안전상 한계</summary>
+<p>이 실험판은 서버에 편지를 저장하지 않습니다. 각 편지는 AES-256-GCM으로 암호화하지만 열쇠가 편지 링크 안에 함께 들어 있습니다. 링크를 받은 다른 사람이나 전달받은 사람도 읽을 수 있습니다. 단톡방 구성원 인증은 제공하지 않습니다.</p>
+<p>기간이 지나거나 읽기 시작하면 이 브라우저에 사용 기록을 남겨 재열람을 제한합니다. 그러나 링크를 복사해서 다른 브라우저나 기기에서 다시 열거나, 사용 기록을 지우거나, 키를 저장하면 재열람할 수 있습니다. 완전한 복구 불가는 아닙니다. 민감한 실제 비밀을 보내지 마세요.</p>
+<p>친구별 모드는 각기 다른 암호키를 생성하지만 각각의 링크를 다른 사람에게 전달하면 그 사람도 읽을 수 있습니다. 직접 지정한 친구만 읽도록 검증하려면 수신자 공개키 확인 등 별도의 최초 설정이 필요합니다.</p>
+<p>메신저가 너무 긴 링크를 잘라낼 수 있습니다. 메시지는 최대 350자로 제한했습니다. 표시 기한은 ‘받는 사람의 열람 시작부터’ 계산됩니다.</p>
+</details>
+<p id="env" class="small muted center"></p>
+</main><script>
 'use strict';
-const $=id=>document.getElementById(id),te=new TextEncoder(),td=new TextDecoder();
-const PREFIX='simple-group-letter-v3';
-let db=null, active=null, activeMode='', inviteUrl='', letterUrl='', endAt=0, interval=null, view=false, claimed=false, testGroup=false, busy=false;
-const SCREENS=['home','writer','receiver','incoming'];
-function show(name){for(const id of SCREENS)$(id).classList.toggle('hidden',name!==id);if(name==='incoming')window.scrollTo({top:0,behavior:'instant'});}
-function msg(id,t,cls=''){$(id).textContent=t;$(id).className='status'+(cls?' '+cls:'');}
-function b64(u){let s='';for(const b of u)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-function un64(s){if(typeof s!=='string'||s.length>25000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('링크가 올바르지 않습니다.');const raw=atob(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4));return Uint8Array.from(raw,x=>x.charCodeAt(0));}
-function pack(o){return b64(te.encode(JSON.stringify(o)));}function unpack(s){return JSON.parse(td.decode(un64(s)));}
-function pub(j){if(!j||j.kty!=='EC'||j.crv!=='P-256'||!/^[-A-Za-z0-9_]{42,44}$/.test(j.x||'')||!/^[-A-Za-z0-9_]{42,44}$/.test(j.y||''))throw Error('공개열쇠가 올바르지 않습니다.');return {kty:'EC',crv:'P-256',x:j.x,y:j.y,ext:true};}
-function rand(){return b64(crypto.getRandomValues(new Uint8Array(16)));}function base(){return location.origin+location.pathname;}function hosted(){return location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';}
-function validId(s){return typeof s==='string'&&/^[A-Za-z0-9_-]{22}$/.test(s);}
-function openDb(){return new Promise((ok,fail)=>{const req=indexedDB.open('simple-secret-letter-v3',1);req.onupgradeneeded=()=>req.result.createObjectStore('keys');req.onsuccess=()=>ok(req.result);req.onerror=()=>fail(req.error);});}
-function put(id,key){return new Promise((ok,fail)=>{const tx=db.transaction('keys','readwrite');tx.objectStore('keys').put(key,id);tx.oncomplete=()=>ok();tx.onerror=()=>fail(tx.error);});}
-function get(id){return new Promise((ok,fail)=>{const tx=db.transaction('keys','readonly');const req=tx.objectStore('keys').get(id);req.onsuccess=()=>ok(req.result);req.onerror=()=>fail(req.error);});}
-// 한 번만 사용할 개인열쇠를 저장소에서 원자적으로 꺼내고 삭제한다.
-function take(id){return new Promise((ok,fail)=>{const tx=db.transaction('keys','readwrite');const store=tx.objectStore('keys');let key=null;const req=store.get(id);req.onsuccess=()=>{if(req.result){key=req.result;store.delete(id);}};tx.oncomplete=()=>ok(key);tx.onerror=()=>fail(tx.error);});}
-async function createInvite(){const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);const id=rand();await put(id,pair.privateKey);return {v:3,id,p:pub(await crypto.subtle.exportKey('jwk',pair.publicKey))};}
-function parseInvite(text){const u=new URL(text.trim());const q=u.searchParams.get('invite');if(!q)throw Error('공개열쇠 링크를 넣어 주세요.');const a=unpack(q);if(a.v!==3||!validId(a.id))throw Error('이전 버전의 공개열쇠입니다. 새로 만들어 주세요.');pub(a.p);return a;}
-function validateBox(x){if(!x||!validId(x.id))throw Error('비밀편지 식별번호 오류');pub(x.e);const s=un64(x.s),i=un64(x.i),c=un64(x.c);if(s.length!==16||i.length!==12||c.length<17||c.length>2000)throw Error('비밀편지 데이터 오류');return {s,i,c};}
-function validatePacket(p){if(!p||p.v!==3||![30,60,180,300].includes(p.t)||!Array.isArray(p.to)||!p.to.length||p.to.length>8)throw Error('편지 형식이 올바르지 않습니다.');for(const x of p.to)validateBox(x);if(new Set(p.to.map(x=>x.id)).size!==p.to.length)throw Error('중복 수신자가 있습니다.');return p;}
-async function aes(myPriv,theirPub,salt){const shared=await crypto.subtle.deriveBits({name:'ECDH',public:theirPub},myPriv,256);const raw=await crypto.subtle.importKey('raw',shared,'HKDF',false,['deriveKey']);return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt,info:te.encode(PREFIX)},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
-async function encodeOne(inv,txt,seconds){const receiver=await crypto.subtle.importKey('jwk',pub(inv.p),{name:'ECDH',namedCurve:'P-256'},false,[]);const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const key=await aes(pair.privateKey,receiver,salt);const aad=te.encode(PREFIX+'|'+seconds+'|'+inv.id);const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},key,te.encode(txt));return {id:inv.id,e:pub(await crypto.subtle.exportKey('jwk',pair.publicKey)),s:b64(salt),i:b64(iv),c:b64(new Uint8Array(ct))};}
-async function createLetter(invites,txt,t){if(!txt.trim())throw Error('편지 내용을 적어 주세요.');if(te.encode(txt).length>800)throw Error('편지가 깁니다. 조금 짧게 적어 주세요.');if(invites.length>8)throw Error('한 번에 8명까지 시험할 수 있습니다.');const to=[];for(const inv of invites)to.push(await encodeOne(inv,txt,t));return {v:3,t,to};}
-function makeUrl(p){return base()+'#letter='+pack(p);}
-async function decrypt(p,box,priv){const b=validateBox(box);const ephemeral=await crypto.subtle.importKey('jwk',pub(box.e),{name:'ECDH',namedCurve:'P-256'},false,[]);const key=await aes(priv,ephemeral,b.s);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b.i,additionalData:te.encode(PREFIX+'|'+p.t+'|'+box.id)},key,b.c);return td.decode(plain);}
-async function findMine(packet){for(const x of packet.to){if(await get(x.id))return x;}return null;}
-async function share(u,title){if(navigator.share){try{await navigator.share({title,url:u});return;}catch(e){if(e.name==='AbortError')return;}}await copy(u);}
-async function copy(u){try{await navigator.clipboard.writeText(u);alert('링크를 복사했습니다.');}catch{prompt('아래 링크를 복사하세요.',u);}}
-function clearTimer(){if(interval){clearInterval(interval);interval=null;}view=false;endAt=0;$('letterBody').textContent='';$('reading').classList.add('hidden');}
-function finish(text='읽는 시간이 끝났습니다.') {if(!view)return;clearTimer();$('before').classList.add('hidden');$('done').classList.remove('hidden');msg('readStatus',text);$('demoNext').classList.toggle('hidden',!testGroup);}
-function clock(){if(!view)return;const ms=endAt-performance.now();if(ms<=0){finish();return;}const secs=Math.ceil(ms/1000);$('clock').textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');$('progressFill').style.width=Math.max(0,ms/(active.t*1000)*100)+'%';}
-function incoming(p,mode='link'){if(view)finish('새 편지를 불러오면서 기존 편지를 닫았습니다.');active=validatePacket(p);activeMode=mode;claimed=false;clearTimer();testGroup=mode==='demo-group';$('before').classList.remove('hidden');$('reading').classList.add('hidden');$('done').classList.add('hidden');$('openLetter').disabled=false;$('selectedTime').textContent=fmt(p.t);msg('readStatus','');show('incoming');}
+const $=id=>document.getElementById(id), encoder=new TextEncoder(), decoder=new TextDecoder();
+let seconds=30,mode='group', generated=[], packet=null, opened=false,until=0,clockId=null,pendingInstall=null;
+const MAX_TEXT=350, MAX_LINK=6000, STORAGE_PREFIX='secret-letter-quick-v5:';
+function base(){return location.origin+location.pathname;}
+function isHttps(){return location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname);}
+function encode64(bytes){let str='';for(const b of bytes)str+=String.fromCharCode(b);return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function decode64(s){if(typeof s!=='string'||s.length>18000||!/^[\w-]+$/.test(s))throw Error('링크가 올바르지 않습니다.');let raw=atob(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
+function pack(obj){return encode64(encoder.encode(JSON.stringify(obj)));}function unpack(s){return JSON.parse(decoder.decode(decode64(s)));}
+function random(n){return crypto.getRandomValues(new Uint8Array(n));}
+function nonce(){return encode64(random(16));}
 function fmt(t){return t<60?t+'초':t/60+'분';}
-async function openLetter(){if(busy||claimed||view||!active)return;busy=true;$('openLetter').disabled=true;try{const box=await findMine(active);if(!box)throw Error('읽을 수 있는 열쇠가 없습니다. 이 공개열쇠를 만든 브라우저에서 열어야 합니다. 또는 이미 읽은 편지입니다.');const priv=await take(box.id);if(!priv)throw Error('이미 읽었거나 열쇠가 사라졌습니다.');claimed=true;const plain=await decrypt(active,box,priv);history.replaceState(null,'',location.pathname);$('before').classList.add('hidden');$('done').classList.add('hidden');$('reading').classList.remove('hidden');$('letterBody').textContent=plain;view=true;endAt=performance.now()+active.t*1000;interval=setInterval(clock,140);clock();msg('readStatus','열쇠를 소모했습니다. 지정된 시간이 지나면 닫힙니다.','success');}catch(e){msg('readStatus','열기 실패: '+e.message,'error');$('openLetter').disabled=false;}finally{busy=false;}}
-$('toWrite').onclick=()=>show('writer');$('toReady').onclick=()=>show('receiver');for(const e of document.querySelectorAll('[data-back]'))e.onclick=()=>show('home');
-$('ready').onclick=async()=>{try{const inv=await createInvite();inviteUrl=hosted()?base()+'?invite='+pack(inv):'';$('inviteUrl').textContent=inviteUrl||'인터넷 HTTPS 주소에서 열면 공유할 수 있습니다.';$('inviteBox').classList.remove('hidden');$('shareInvite').disabled=!inviteUrl;$('copyInvite').disabled=!inviteUrl;msg('readyStatus','공개열쇠를 만들었습니다. 친구에게 보내 주세요.','success');}catch(e){msg('readyStatus','실패: '+e.message,'error');}};
-$('shareInvite').onclick=()=>share(inviteUrl,'비밀편지 공개열쇠');$('copyInvite').onclick=()=>copy(inviteUrl);
-$('make').onclick=async()=>{try{if(!hosted())throw Error('친구에게 보낼 링크는 HTTPS 웹주소에서 만들어야 합니다.');const lines=$('keys').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(!lines.length)throw Error('친구 공개열쇠 링크를 붙여넣어 주세요.');const invites=lines.map(parseInvite);if(new Set(invites.map(x=>x.id)).size!==invites.length)throw Error('같은 공개열쇠가 중복되었습니다.');const packet=await createLetter(invites,$('msg').value,Number($('duration').value));letterUrl=makeUrl(packet);if(letterUrl.length>12000)throw Error('링크가 너무 깁니다. 받는 사람 수나 글자 수를 줄여 주세요.');$('outBox').classList.remove('hidden');$('letterUrl').textContent=letterUrl;$('audience').textContent=invites.length===1?'한 사람에게 보내는 편지입니다.':invites.length+'명에게 같은 링크를 보내세요. 각자 '+fmt(packet.t)+' 동안 읽습니다.';$('linkWarning').textContent=letterUrl.length>2500?'⚠️ 링크가 길어 메신저에서 잘릴 수 있습니다. 친구별 전송을 권장합니다.':'읽는 사람이 자신의 브라우저에서 링크를 열어야 합니다.';msg('writeStatus','비밀편지 링크를 만들었습니다.','success');}catch(e){$('outBox').classList.add('hidden');msg('writeStatus','실패: '+e.message,'error');}};
-$('shareLetter').onclick=()=>share(letterUrl,'비밀편지가 도착했어요');$('copyLetter').onclick=()=>copy(letterUrl);
-$('openLetter').onclick=openLetter;$('closeNow').onclick=()=>finish('편지를 직접 닫았습니다.');$('retry').onclick=async()=>{const mine=await findMine(active);msg('readStatus',mine?'열 수 있는 다른 사람의 열쇠가 남아 있습니다(단톡방 실험).':'재열람 실패: 이 브라우저에는 더 이상 사용할 일회용 열쇠가 없습니다.','error');};
-$('nextReader').onclick=()=>incoming(active,'demo-group');
-$('tryDemo').onclick=async()=>{try{const a=await createInvite();const p=await createLetter([a],'안녕하세요! 이 편지는 30초 뒤 사라지는 시험용 메시지입니다.',30);incoming(p,'demo-single');}catch(e){msg('env','시험 실패: '+e.message,'error');}};
-$('tryGroup').onclick=async()=>{try{const a=await createInvite(),b=await createInvite();incoming(await createLetter([a,b],'단톡방 실험입니다! 첫 번째 사람도, 두 번째 사람도 각각 30초 동안 읽을 수 있습니다.',30),'demo-group');}catch(e){msg('env','시험 실패: '+e.message,'error');}};
-window.addEventListener('visibilitychange',()=>{if(document.hidden&&view)finish('다른 화면으로 이동해서 편지를 닫았습니다.');else clock();});
-window.addEventListener('pagehide',()=>{if(view)finish('페이지 이동으로 편지를 닫았습니다.');});window.addEventListener('focus',clock);window.addEventListener('pageshow',clock);
-(async()=>{try{if(!crypto?.subtle||!indexedDB)throw Error('HTTPS에서 열어 주세요.');db=await openDb();$('env').textContent='실험용 · 서버에 편지/열쇠를 저장하지 않습니다.';if(location.hash.startsWith('#letter=')){incoming(unpack(location.hash.slice(8)),'link');}else if(new URLSearchParams(location.search).has('invite')){const inv=parseInvite(location.href);$('keys').value=location.href;show('writer');msg('writeStatus','친구 공개열쇠를 불러왔습니다. 편지만 작성하세요.','success');}else{show('home');}}catch(e){$('env').textContent='실행 오류: '+e.message;}})();
-</script>
-</body>
-</html>
+function setStatus(text,isError=false){$('status').textContent=text;$('status').className=isError?'error':'success';}
+function chooseMode(m){mode=m;$('groupHelp').classList.toggle('hidden',m!=='group');$('privateSection').classList.toggle('hidden',m!=='private');$('result').classList.add('hidden');}
+for(const b of document.querySelectorAll('[data-seconds]')) b.addEventListener('click',()=>{seconds=Number(b.dataset.seconds);for(const other of document.querySelectorAll('[data-seconds]'))other.setAttribute('aria-pressed',String(other===b));$('result').classList.add('hidden');});
+for(const el of document.querySelectorAll('input[name="mode"]'))el.addEventListener('change',()=>chooseMode(el.value));
+$('bodyInput').addEventListener('input',()=>{$('result').classList.add('hidden');});$('recipients').addEventListener('input',()=>{$('result').classList.add('hidden');});
+async function createEnvelope(message,ttl){
+ const rawKey=random(32), iv=random(12), key=await crypto.subtle.importKey('raw',rawKey,'AES-GCM',false,['encrypt']);
+ const aad=encoder.encode('secret-letter-quick-v5|'+ttl);const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},key,encoder.encode(message));
+ return {v:5,t:ttl,id:nonce(),k:encode64(rawKey),iv:encode64(iv),c:encode64(new Uint8Array(cipher))};
+}
+function validate(p){if(!p||p.v!==5||![30,60,180,300].includes(p.t)||typeof p.id!=='string'||!/^[-\w]{22}$/.test(p.id))throw Error('이전 버전 또는 올바르지 않은 편지입니다.');if(decode64(p.k).length!==32||decode64(p.iv).length!==12){throw Error('열쇠 형식이 올바르지 않습니다.');}const c=decode64(p.c);if(c.length<17||c.length>1800)throw Error('편지 내용 형식이 올바르지 않습니다.');return p;}
+async function decrypt(p){validate(p);const key=await crypto.subtle.importKey('raw',decode64(p.k),'AES-GCM',false,['decrypt']);const clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:decode64(p.iv),additionalData:encoder.encode('secret-letter-quick-v5|'+p.t)},key,decode64(p.c));return decoder.decode(clear);}
+function makeLink(p){return base()+'#letter='+pack(p);}
+async function shareLink(link){if(navigator.share){try{await navigator.share({title:'비밀편지가 도착했어요',url:link});return;}catch(e){if(e.name==='AbortError')return;}}try{await navigator.clipboard.writeText(link);alert('링크를 복사했어요. 카카오톡에 붙여넣어 보내세요.');}catch{prompt('링크를 복사해 보내세요.',link);}}
+function clearElement(element){element.replaceChildren();}
+function addLinkRow(name,link){const row=document.createElement('div');row.className='person';const header=document.createElement('div');header.className='name';header.textContent=name;const actions=document.createElement('div');actions.className='sendrow';const send=document.createElement('button');send.type='button';send.className='primary';send.textContent='보내기';send.addEventListener('click',()=>shareLink(link));const copy=document.createElement('button');copy.textContent='복사';copy.addEventListener('click',()=>shareLinkWithoutDialog(link));actions.append(send,copy);row.append(header,actions);$('linkList').append(row);}
+async function shareLinkWithoutDialog(link){try{await navigator.clipboard.writeText(link);$('saveTip').textContent='링크를 복사했어요. 카카오톡에 붙여넣으세요.';}catch{prompt('링크를 복사해 주세요.',link);}}
+$('generate').addEventListener('click',async()=>{
+ const button=$('generate');button.disabled=true;clearElement($('linkList'));$('result').classList.add('hidden');setStatus('');
+ try{
+  if(!isHttps())throw Error('HTTPS 웹주소에서 열어야 링크를 보낼 수 있어요.');
+  const message=$('bodyInput').value.trim();if(!message)throw Error('편지를 먼저 적어 주세요.');if(message.length>MAX_TEXT)throw Error('편지를 조금 짧게 적어 주세요.');
+  let names=mode==='group'?['단톡방에 링크 하나 보내기']:$('recipients').value.split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);
+  if(!names.length)throw Error('받는 사람 이름을 적어 주세요.');if(names.length>8)throw Error('한 번에 8명까지 가능합니다.');if(mode==='private'&&new Set(names).size!==names.length)throw Error('같은 이름이 두 번 있어요.');
+  const links=[];for(const name of names){const env=await createEnvelope(message,seconds);const link=makeLink(env);if(link.length>MAX_LINK)throw Error('편지가 너무 깁니다.');links.push({name,link});}
+  for(const item of links)addLinkRow(item.name,item.link);
+  $('resultTitle').textContent=mode==='group'?'단톡방에 바로 보내세요':'친구별로 보내세요';
+  $('saveTip').textContent=mode==='group'?'링크를 받은 누구나 읽을 수 있어요. 각자 자기 브라우저에서 시간이 시작됩니다.':'각 친구에게 서로 다른 링크가 만들어졌어요. 링크를 아는 사람은 누구나 읽을 수 있습니다.';
+  $('result').classList.remove('hidden');
+  if(links.length===1){setStatus('편지가 완성됐어요!');}else setStatus('각자 다른 암호키 '+links.length+'개를 자동으로 만들었어요.');
+ }catch(e){setStatus(e.message,true);}finally{button.disabled=false;}
+});
+let timerInterval=null;
+function hidePlain(){if(timerInterval!==null){clearInterval(timerInterval);timerInterval=null;}$('secretText').textContent='';$('whileRead').classList.add('hidden');opened=false;}
+function finish(){hidePlain();$('beforeRead').classList.add('hidden');$('afterRead').classList.remove('hidden');$('readInfo').textContent='이 브라우저에서는 사용한 편지를 다시 열지 못하도록 처리했습니다.';}
+function checkClock(){if(!opened)return;const left=until-performance.now();if(left<=0){finish();return;}const sec=Math.ceil(left/1000);$('timer').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');$('barFill').style.width=Math.max(0,left/(packet.t*1000)*100)+'%';}
+function storageKey(id){return STORAGE_PREFIX+id;}
+function wasRead(id){try{return localStorage.getItem(storageKey(id))!==null;}catch{throw Error('브라우저의 저장 기능이 꺼져 있어 일회용 편지를 열 수 없습니다.');}}
+function markRead(id){localStorage.setItem(storageKey(id),String(Date.now()));}
+function enterReader(p){packet=validate(p);$('compose').classList.add('hidden');$('readingPage').classList.remove('hidden');$('beforeRead').classList.remove('hidden');$('whileRead').classList.add('hidden');$('afterRead').classList.add('hidden');$('limitText').textContent='열면 '+fmt(p.t)+' 동안만 볼 수 있어요.';if(wasRead(p.id)){$('beforeRead').classList.add('hidden');$('afterRead').classList.remove('hidden');}$('readInfo').textContent='';}
+$('readBtn').addEventListener('click',async()=>{
+ if(!packet||opened)return;const btn=$('readBtn');btn.disabled=true;
+ try{
+  if(wasRead(packet.id))throw Error('이 브라우저에서 이미 열어본 편지입니다.');
+  // 사용 기록을 복호화 전에 저장해 페이지 새로고침으로 다시 열리지 않도록 한다.
+  markRead(packet.id);
+  const plain=await decrypt(packet);history.replaceState(null,'',base());$('beforeRead').classList.add('hidden');$('afterRead').classList.add('hidden');$('secretText').textContent=plain;$('whileRead').classList.remove('hidden');opened=true;until=performance.now()+packet.t*1000;timerInterval=setInterval(checkClock,150);checkClock();
+ }catch(e){$('readInfo').textContent='열지 못했어요: '+e.message;$('beforeRead').classList.add('hidden');$('afterRead').classList.remove('hidden');}finally{btn.disabled=false;}
+});
+$('endBtn').onclick=finish;
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&opened)finish();else checkClock();});
+window.addEventListener('pagehide',()=>{if(opened)finish();});window.addEventListener('focus',checkClock);
+const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();pendingInstall=e;});
+window.addEventListener('appinstalled',()=>{pendingInstall=null;$('installPanel').classList.add('hidden');showCompose();});
+function showCompose(){if(opened)finish();$('readingPage').classList.add('hidden');$('compose').classList.remove('hidden');$('bodyInput').focus();}
+$('replyBtn').onclick=()=>{if(standalone())showCompose();else{$('installPanel').classList.remove('hidden');$('installPanel').scrollIntoView({behavior:'smooth',block:'nearest'});}};
+$('tryWebBtn').onclick=()=>showCompose();
+$('installBtn').onclick=async()=>{
+ if(pendingInstall){const p=pendingInstall;pendingInstall=null;try{await p.prompt();const result=await p.userChoice;if(result.outcome!=='accepted'){$('installHelp').textContent='설치하지 않아도 아래 버튼으로 먼저 시험할 수 있어요.';}}catch(e){$('installHelp').textContent='브라우저 메뉴에서 설치해 주세요.';}return;}
+ $('installHelp').textContent='크롬 브라우저에서 열고 오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 선택하세요. 카카오톡 내부 브라우저에서는 설치 메뉴가 없을 수 있습니다.';
+};
+(async()=>{try{if(!crypto?.subtle||!isHttps())throw Error('HTTPS 주소에서 열어 주세요.');$('env').textContent='실험용 웹앱 · 서버에 편지 저장 안 함';if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});if(location.hash.startsWith('#letter='))enterReader(unpack(location.hash.substring('#letter='.length)));}catch(e){$('compose').classList.add('hidden');$('readingPage').classList.remove('hidden');$('beforeRead').classList.add('hidden');$('afterRead').classList.remove('hidden');$('readInfo').textContent='실행 오류: '+e.message;}})();
+</script></body></html>
