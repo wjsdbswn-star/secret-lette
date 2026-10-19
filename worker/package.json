@@ -1,0 +1,13 @@
+{
+  "name": "secret-letter-worker-v10",
+  "private": true,
+  "version": "0.10.0",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "health": "wrangler d1 list",
+    "db:create": "wrangler d1 create secret-letter-mobile-v10",
+    "db:apply": "wrangler d1 execute secret-letter-mobile-v10 --remote --file=./schema.sql"
+  },
+  "devDependencies": {"wrangler": "^4.0.0"}
+}

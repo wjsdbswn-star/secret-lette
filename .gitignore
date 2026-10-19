@@ -1,0 +1,11 @@
+node_modules/
+mobile/dist/
+mobile/android/
+mobile/ios/
+mobile/.env
+worker/.wrangler/
+worker/wrangler.generated.toml
+배포완료_주소.txt
+*.apk
+*.ipa
+.DS_Store

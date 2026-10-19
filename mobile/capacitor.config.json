@@ -1,0 +1,6 @@
+{
+  "appId": "com.secretletter.prototype",
+  "appName": "비밀편지",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false }
+}

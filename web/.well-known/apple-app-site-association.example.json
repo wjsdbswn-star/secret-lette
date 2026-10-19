@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REPLACE_APPLE_TEAM_ID.com.secretletter.prototype"],
+        "components": [{"/": "/l/*", "comment": "비밀편지 수신 링크"}]
+      }
+    ]
+  }
+}

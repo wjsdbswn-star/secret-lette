@@ -1,0 +1,27 @@
+{
+  "name": "secret-letter-mobile",
+  "private": true,
+  "version": "0.10.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "android:add": "npx cap add android",
+    "ios:add": "npx cap add ios",
+    "sync": "npx cap sync",
+    "android:open": "npx cap open android",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/share": "^7.0.4",
+    "@capacitor/clipboard": "^7.0.4"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12",
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/ios": "^7.4.0"
+  }
+}

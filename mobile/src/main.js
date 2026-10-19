@@ -1,0 +1,177 @@
+import {Capacitor} from '@capacitor/core';
+import {App} from '@capacitor/app';
+import {Share} from '@capacitor/share';
+import {Clipboard} from '@capacitor/clipboard';
+import {encryptLetter,decryptLetter,buildShareLink,parseIncomingLink,MAX_SECONDS} from './letter.js';
+import './style.css';
+
+const $=id=>document.getElementById(id);
+// 고정 웹 도메인으로 교체하면 모든 앱이 동일한 URL 형식을 사용합니다.
+const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || ''; // 서버 미배포 상태에서도 앱을 빌드할 수 있음
+const DEFAULT_API=import.meta.env.VITE_API_BASE || '';
+const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
+let mode='single',prepared=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
+const native=Capacitor.isNativePlatform();
+
+function status(id,txt,error=false){$(id).textContent=txt;$(id).classList.toggle('bad',error);}
+function cleanApi(url) {
+  const u=new URL(url);
+  if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw Error('HTTPS Worker 주소를 넣어 주세요.');
+  return u.origin+u.pathname.replace(/\/$/,'');
+}
+function api(){try{return cleanApi(localStorage.getItem(KEY)||DEFAULT_API);}catch{return '';}}
+function cleanWeb(url){
+  const u=new URL(url);
+  if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/')throw Error('HTTPS 안내 페이지 주소를 넣어 주세요.');
+  if(u.hostname.includes('secret-letter-web-wjsdbswn'))throw Error('9차 웹 시제품 주소는 사용할 수 없습니다. v10 전용 안내 주소를 사용하세요.');
+  return u.origin+'/';
+}
+function webBase(){try{return cleanWeb(localStorage.getItem(WEB_KEY)||DEFAULT_WEB);}catch{return '';}}
+async function request(endpoint,payload=null) {
+  const root=api();if(!root)throw Error('아래 관리자 설정에서 Cloudflare 서비스 주소를 연결해 주세요.');
+  const ctl=new AbortController(), timer=setTimeout(()=>ctl.abort(),12000);
+  try {
+    const response=await fetch(root+'/v10/'+endpoint,{method:payload?'POST':'GET',
+      headers:payload?{'Content-Type':'application/json'}:{},body:payload?JSON.stringify(payload):undefined,
+      cache:'no-store',signal:ctl.signal});
+    const data=await response.json();
+    if(!response.ok)throw Error(data.error||`서버 오류: ${response.status}`);
+    return data;
+  }catch(e){if(e.name==='AbortError')throw Error('서버 연결 시간이 초과되었습니다.');throw e;}
+  finally{clearTimeout(timer);}
+}
+function page(name){
+  if(name!=='reader' && watch)stopReading(true);
+  $('compose').classList.toggle('hidden',name!=='compose');$('reader').classList.toggle('hidden',name!=='reader');
+  $('goCompose').classList.toggle('on',name==='compose');$('goReader').classList.toggle('on',name==='reader');
+}
+function timeSeconds(){return ['days','hours','minutes','seconds'].reduce((v,id,i)=>v+Number($(id).value)*[86400,3600,60,1][i],0);}
+function setupTimes(){for(const [id,max] of [['days',30],['hours',23],['minutes',59],['seconds',59]]){
+  for(let n=0;n<=max;n++){const o=document.createElement('option');o.value=n;o.textContent=String(n).padStart(2,'0');$(id).append(o);}
+} $('minutes').value='1';}
+function clearReady(){prepared=null;$('ready').classList.add('hidden');$('shareLink').value='';}
+$('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
+for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
+for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>{
+  mode=el.dataset.mode;for(const e of document.querySelectorAll('[data-mode]'))e.setAttribute('aria-pressed',String(e===el));
+  $('modeInfo').textContent=mode==='single'?'첫 열람 요청만 성공합니다. 수신자 신원은 확인하지 않습니다.':'첫 사람이 열면 공통 소멸시간이 시작되고, 링크 소지자 모두 읽을 수 있습니다.';
+  clearReady();
+});
+$('send').addEventListener('click',async()=>{
+  const btn=$('send');btn.disabled=true;status('sendState','암호화하고 서버에 등록하는 중입니다…');clearReady();
+  try{
+    const base=webBase();
+    if(!base)throw Error('v10 전용 공유 주소가 연결되지 않았습니다. 서버 배포 후 설정해 주세요.');
+    const sec=timeSeconds();if(sec<1||sec>MAX_SECONDS)throw Error('1초 이상 30일 23시간 59분 59초 이하로 설정해 주세요.');
+    const data=await encryptLetter($('message').value.trim(),mode,sec);
+    // 원문과 키를 보낼 수 없도록 필드를 직접 지정합니다.
+    await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
+    prepared=buildShareLink(base,data.id,data.key);
+    $('shareLink').value=prepared;$('ready').classList.remove('hidden');
+    status('sendState','✓ 비밀편지가 준비됐습니다. 아래 공유 버튼을 눌러 주세요.');
+  }catch(e){status('sendState','만들기 실패: '+e.message,true);}finally{btn.disabled=false;}
+});
+$('share').addEventListener('click',async()=>{
+  if(!prepared){status('sendState','먼저 편지를 만들어 주세요.',true);return;}
+  try {
+    if(native)await Share.share({title:'비밀편지',text:'비밀편지가 도착했어요. 비밀편지 앱에서 열어 보세요.',url:prepared,dialogTitle:'비밀편지 보내기'});
+    else if(navigator.share)await navigator.share({title:'비밀편지',text:'비밀편지가 도착했어요.',url:prepared});
+    else throw Error('이 기기에서는 아래 링크를 복사해 주세요.');
+    status('sendState','공유 화면을 닫았습니다. 실제 전송 여부를 확인해 주세요.');
+  }catch(e){status('sendState',e?.name==='AbortError'?'공유를 취소했습니다.':'공유 실패: '+e.message,e?.name!=='AbortError');}
+});
+$('copy').addEventListener('click',async()=>{
+  if(!prepared)return;
+  try{if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
+    status('sendState','링크를 복사했습니다. 카카오톡에 붙여넣으세요.');}
+  catch{ $('shareLink').focus();$('shareLink').select();status('sendState','링크를 길게 눌러 복사해 주세요.',true);}
+});
+$('apiInput').value=api();
+$('webInput').value=webBase();
+$('apiSave').addEventListener('click',async()=>{
+  $('apiSave').disabled=true;status('setupState','서버를 확인하고 있습니다…');
+  try{const url=cleanApi($('apiInput').value.trim());
+    const shareBase=cleanWeb($('webInput').value.trim());
+    const c=new AbortController(), t=setTimeout(()=>c.abort(),8000);
+    let r;try{r=await fetch(url+'/v10/health',{signal:c.signal,cache:'no-store'});}finally{clearTimeout(t);}
+    const j=await r.json();if(!r.ok||j.service!=='secret-letter-v10')throw Error('v10 Worker가 아니거나 데이터베이스가 준비되지 않았습니다.');
+    localStorage.setItem(KEY,url);localStorage.setItem(WEB_KEY,shareBase);clearReady();status('setupState','✓ 서버 연결이 확인되었습니다.');
+  }catch(e){status('setupState','연결 실패: '+e.message,true);}finally{$('apiSave').disabled=false;}
+});
+function stopReading(showClosed=true){
+  if(watch){clearInterval(watch);watch=null;}
+  $('plain').textContent='';$('during').classList.add('hidden');
+  if(showClosed){$('before').classList.add('hidden');$('after').classList.remove('hidden');}
+}
+function tick(){if(!watch)return;const left=Math.max(0,expiresAt-serverAt-(performance.now()-startedAt));
+  if(left<=0){stopReading();return;}
+  let n=Math.ceil(left/1000),d=Math.floor(n/86400);n%=86400;const h=Math.floor(n/3600);n%=3600;
+  const m=Math.floor(n/60),s=n%60;const pad=v=>String(v).padStart(2,'0');
+  $('timer').textContent=(d?pad(d)+':':'')+pad(h)+':'+pad(m)+':'+pad(s);
+  $('meterFill').style.width=(100*Math.min(1,left/(Number($('during').dataset.seconds)*1000)))+'%';
+}
+async function receiveLink(url){
+  // 잘못된 새 링크를 받은 경우 이전 편지를 잘못 열지 않도록 기존 열람 대기를 먼저 폐기합니다.
+  incoming=null; $('open').disabled=true;
+  stopReading(false);
+  $('before').classList.remove('hidden');$('after').classList.add('hidden');
+  try{
+    const parsed=parseIncomingLink(url,webBase());incoming=parsed;
+    $('open').disabled=false;
+    $('readerHint').textContent='열람 버튼을 누르면 소멸시간이 시작되거나 남은 시간이 적용됩니다.';
+    status('readerState','받은 비밀편지입니다. 열 준비가 되면 버튼을 누르세요.');page('reader');
+  }catch(e){status('readerState','링크 확인 실패: '+e.message,true);page('reader');}
+}
+$('open').addEventListener('click',async()=>{
+  if(!incoming)return;
+  $('open').disabled=true;status('readerState','비밀편지를 여는 중입니다…');
+  try {
+    const requestedAt=performance.now();
+    const result=await request('open',{id:incoming.id});
+    const content=await decryptLetter(result,incoming.key,incoming.id);
+    // 기기 시계 대신 서버가 전해 준 시간과 단조 시계를 사용합니다.
+    // 서버까지의 왕복시간을 전체 경과시간으로 잡아 기기 시계 조작이나 느린 통신으로 표시시간이 연장되지 않도록 합니다.
+    if(result.deadlineAt<=result.serverNow+(performance.now()-requestedAt))throw Error('편지를 읽을 시간이 지났습니다.');
+    $('plain').textContent=content;
+    $('during').dataset.seconds=result.durationSeconds;
+    $('before').classList.add('hidden');$('after').classList.add('hidden');$('during').classList.remove('hidden');
+    expiresAt=result.deadlineAt;serverAt=result.serverNow;startedAt=requestedAt;
+    watch=setInterval(tick,150);tick();status('readerState','');
+    incoming=null; // 앱에서 열람 후 링크를 보관하지 않음
+  }catch(e){status('readerState','열 수 없습니다: '+e.message,true);stopReading();}
+  finally{$('open').disabled=false;}
+});
+$('close').addEventListener('click',()=>stopReading());
+$('reply').addEventListener('click',()=>page('compose'));
+$('goCompose').addEventListener('click',()=>page('compose'));
+$('goReader').addEventListener('click',()=>page('reader'));
+$('checkLink').addEventListener('click',()=>{
+  const raw=$('pasteLink').value.trim();
+  if(!raw){status('readerState','카카오톡에서 복사한 비밀편지 링크를 붙여넣으세요.',true);return;}
+  receiveLink(raw);
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&watch)stopReading();});
+window.addEventListener('pagehide',()=>{if(watch)stopReading();});
+
+$('offlineDemo').addEventListener('click',async()=>{
+  const button=$('offlineDemo');button.disabled=true;
+  status('offlineState','이 휴대전화에서 암호화·복호화 확인 중…');
+  try{
+    const sample='안녕하세요! 비밀편지 암호화 테스트입니다. 🔒';
+    const d=await encryptLetter(sample,'single',30);
+    const restored=await decryptLetter({mode:d.mode,durationSeconds:d.seconds,iv:d.iv,ciphertext:d.ciphertext},d.key,d.id);
+    if(restored!==sample)throw Error('암호화 결과가 일치하지 않습니다.');
+    status('offlineState','✓ 테스트 성공! 이 기기에서 한글·이모지 편지를 암호화하고 다시 복호화했습니다. 실제 공유에는 Cloudflare 서버 연결이 필요합니다.');
+  }catch(e){status('offlineState','오프라인 암호화 시험 실패: '+e.message,true);}
+  finally{button.disabled=false;}
+});
+setupTimes();page('compose');
+// App Links / Universal Links / custom scheme (네이티브 설정은 README 참고).
+if(native){
+  // WebView visibilitychange만으로는 모든 기기의 앱 전환을 감지하지 못할 수 있습니다.
+  // 네이티브 백그라운드 전환에서도 편지 화면을 즉시 닫습니다.
+  App.addListener('appStateChange',({isActive})=>{if(!isActive&&watch)stopReading();});
+  App.addListener('appUrlOpen',e=>{if(e?.url)receiveLink(e.url);});
+  App.getLaunchUrl().then(x=>{if(x?.url)receiveLink(x.url);}).catch(()=>{});
+}
+// 브라우저에서는 개발 서버에서만 기능 시험. 공개된 웹 수신 페이지에는 이 코드를 배포하지 않습니다.
