@@ -30,10 +30,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-      - name: Android SDK 설치
-        uses: android-actions/setup-android@v3
-      - name: Android 플랫폼 구성
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+      - name: Android SDK 구성 (GitHub 러너에 사전 설치된 SDK 사용)
+        run: |
+          echo "SDK: $ANDROID_HOME"
+          sdkmanager --version
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
       - name: 보안 및 소멸 기능 자동 테스트
         working-directory: .
         run: npm test
