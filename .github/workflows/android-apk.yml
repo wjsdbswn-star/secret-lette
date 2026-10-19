@@ -33,8 +33,10 @@ jobs:
       - name: Android SDK 구성 (GitHub 러너에 사전 설치된 SDK 사용)
         run: |
           echo "SDK: $ANDROID_HOME"
-          sdkmanager --version
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          "$SDKMANAGER" --version
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
       - name: 보안 및 소멸 기능 자동 테스트
         working-directory: .
         run: npm test
