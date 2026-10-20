@@ -12,9 +12,21 @@
 :root{font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#273c32;background:#f7f8f6}
 *{box-sizing:border-box}body{margin:0}main{max-width:530px;margin:auto;padding:24px 16px 75px}header{display:flex;align-items:center;gap:10px;margin-bottom:22px}h1{font-size:25px;letter-spacing:-.04em;margin:0}.muted{font-size:13px;color:#718078;line-height:1.55}.panel{border-radius:18px;background:white;border:1px solid #e0e6e1;padding:20px 18px;box-shadow:0 8px 24px #20302408}label,.label{font-size:15px;font-weight:800;display:block;margin:18px 0 9px}label.first{margin-top:0}textarea,input,select{font:inherit;border:1px solid #becdc4;border-radius:10px;background:white;color:inherit}textarea{display:block;width:100%;min-height:160px;padding:14px;font-size:17px;line-height:1.6;resize:vertical}input{width:100%;padding:12px}.time{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.time label{font-size:12px;color:#69796f;margin:0 0 5px}.time select{width:100%;height:44px;padding:6px 4px;font-size:16px;text-align:center;font-variant-numeric:tabular-nums}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}button{font:inherit;cursor:pointer;border:0;border-radius:12px;min-height:48px;padding:12px;font-weight:800}button:disabled{opacity:.6;cursor:default}.choice{border:1.5px solid #d2dbd5;background:#fff;color:#456455;font-size:14px}.choice[aria-pressed="true"]{border-color:#225c42;background:#e8f3ea;color:#225c42}.primary{background:#276347;color:white;width:100%;font-size:18px;min-height:57px;margin-top:24px}.primary:hover{background:#1b4e36}.secondary{background:#edf4ed;color:#28513a}.status{font-size:13px;color:#3b7757;margin-top:12px;min-height:20px;line-height:1.5}.bad{color:#aa2b43!important}.hidden{display:none!important}.fallback{margin-top:14px;padding:15px;border:1px solid #d7e5d9;border-radius:12px;background:#f0f6f1}.fallback button{width:100%;margin-top:8px}.small{font-size:12px;color:#738377;line-height:1.55}.note{font-size:12px;line-height:1.5;color:#6f8073;margin:8px 0 0}.timer{font-size:38px;text-align:center;letter-spacing:-.04em;font-weight:850;font-variant-numeric:tabular-nums;margin:12px 0}.letter{padding:18px;border-radius:14px;background:#edf5ee;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;font-size:18px;min-height:110px}.red{background:#ca2d49;color:#fff;width:100%;margin-top:17px}.meter{height:6px;border-radius:10px;background:#d7e5d9;overflow:hidden}.meter div{height:100%;background:#3e9363;width:100%}.gone{text-align:center;padding:35px 5px;font-size:20px;font-weight:850}details{margin-top:18px;font-size:13px;color:#69796f}summary{cursor:pointer;padding:8px 0}#serverSave{width:100%;margin-top:8px}.soft{background:#f2f6f3;padding:12px;border-radius:10px;line-height:1.5}.version{text-align:center;font-size:11px;color:#98a79d;margin:20px}.hint{margin-top:12px}#modeInfo{margin-top:6px}#count{font-size:11px;text-align:right;color:#7f9184;margin-top:4px}.send-tip{padding:9px 12px;margin-top:10px;border-radius:10px;background:#f0f5f0;font-weight:700;color:#26523b;font-size:13px;line-height:1.5}.send-tip:empty{display:none}#fallback{border:2px solid #a9d1b3}#shareAgain{width:100%;margin-bottom:5px}.fallback .small{padding:4px 0}
 </style>
+<style>
+/* 9차 링크의 읽기 기능은 유지하고 웹 편지 작성은 비활성화합니다. */
+#compose,#settings,#replyHint,#replyWeb{display:none!important}
+#install{margin-bottom:16px;text-align:center}
+#install a{display:block;padding:15px;border-radius:12px;background:#276347;color:#fff;font-weight:800;text-decoration:none;margin-top:18px}
+</style>
 </head>
 <body><main>
-<header><span style="font-size:30px" aria-hidden="true">✉️</span><div><h1>비밀편지</h1><div class="muted">쓰고, 시간을 정하고, 보내세요.</div></div></header>
+<header><span style="font-size:30px" aria-hidden="true">✉️</span><div><h1>비밀편지</h1><div class="muted">읽기는 웹에서 · 쓰기는 앱에서</div></div></header>
+<section id="install" class="panel">
+ <h2 style="font-size:21px;margin:4px 0">비밀편지를 보내고 싶으신가요?</h2>
+ <p class="muted">편지를 읽는 데는 앱 설치가 필요하지 않습니다. 편지를 쓰고 보내려면 앱을 설치해 주세요.</p>
+ <a href="https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk" rel="noopener noreferrer">비밀편지 앱 설치하기 (안드로이드)</a>
+ <p class="small">아이폰 앱은 시험 개발 중입니다.</p>
+</section>
 <section id="compose" class="panel">
  <label class="first" for="message">편지 내용</label>
  <textarea id="message" maxlength="400" placeholder="비밀편지를 적어 주세요."></textarea><div id="count">0 / 400자</div>
@@ -46,7 +58,7 @@
  <div id="before"><h2 style="font-size:21px;margin:4px 0 10px">📩 비밀편지가 도착했어요</h2><p class="muted" id="readerHint">편지를 열면 시간이 시작됩니다.</p><button id="open" class="primary">편지 열기</button></div>
  <div id="during" class="hidden"><div class="timer" id="timer">00:00:30</div><div class="meter"><div id="meterFill"></div></div><div id="plain" class="letter" style="margin-top:17px"></div><p class="small">다른 화면으로 이동하면 편지가 바로 닫힙니다.</p><button id="close" class="secondary" style="width:100%">지금 닫기</button></div>
  <div id="after" class="hidden"><div class="gone">🔒 편지가 사라졌어요</div><p class="muted" style="text-align:center">이 편지는 열람할 수 없습니다.</p></div>
- <button id="reply" type="button" class="red">↩ 답장하기</button>
+ <button id="reply" type="button" class="red">↩ 비밀편지 보내기 (앱 설치)</button>
  <div id="replyHint" class="hidden fallback"><b>답장하려면 앱을 설치해 주세요.</b><p class="small">현재는 실험용 웹앱입니다. 웹에서 새 편지를 써볼 수 있어요.</p><button id="replyWeb" class="secondary">웹에서 편지 쓰기</button></div>
  <p id="readerState" class="status" role="status" aria-live="polite"></p>
 </section>
@@ -60,7 +72,7 @@
  <p>모든 화면·백업·해독 정보 복제를 지우는 완전한 소멸은 보장하지 못합니다. 편지 원문을 서버에 저장하지는 않지만, 서버에는 무작위 번호·일부 키 정보·시간 기록이 보관됩니다. 실제 민감한 편지에는 사용하지 마세요.</p>
  <p>이 페이지는 GitHub Pages에, 관리 서비스는 Cloudflare Worker+D1에 각각 배포해야 합니다. 관리자만 서비스 설정을 하면 됩니다.</p>
 </details>
-<div class="version">9차 공유 오류 수정 실험판 · 2026.10</div>
+<div class="version">9차 편지 열람 전용 · 작성은 앱에서</div>
 </main>
 <script>
 'use strict';
@@ -165,6 +177,6 @@ $('message').addEventListener('input',schedule);for(const id of ['days','hours',
 for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>choose('mode',el.dataset.mode));
 
 window.addEventListener('error',e=>{message('프로그램 오류: '+(e?.message||'알 수 없는 오류')+'. 페이지를 새로고침해 주세요.',true);});
-setupTime();setConnected();try{if(location.hash.startsWith('#letter='))showReader(unpack(location.hash.slice(8)));}catch(e){$('compose').classList.add('hidden');$('settings').classList.add('hidden');$('reader').classList.remove('hidden');$('before').classList.add('hidden');$('after').classList.remove('hidden');message('링크를 열 수 없습니다: '+e.message,true,'readerState');}
+setupTime();setConnected();$('reply').onclick=()=>{location.href='https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk';};try{if(location.hash.startsWith('#letter=')){$('install').classList.add('hidden');showReader(unpack(location.hash.slice(8)));}}catch(e){$('compose').classList.add('hidden');$('settings').classList.add('hidden');$('reader').classList.remove('hidden');$('before').classList.add('hidden');$('after').classList.remove('hidden');message('링크를 열 수 없습니다: '+e.message,true,'readerState');}
 </script>
 </body></html>
