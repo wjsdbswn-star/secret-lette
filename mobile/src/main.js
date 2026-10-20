@@ -11,6 +11,8 @@ const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || ''; // 서버 미배포 상�
 const DEFAULT_API=import.meta.env.VITE_API_BASE || '';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
 let mode='single',prepared=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
+const SERVICE_CONFIG_URL='https://wjsdbswn-star.github.io/secret-lette/server-config.json';
+let serviceConfigPromise=null;
 const native=Capacitor.isNativePlatform();
 
 function status(id,txt,error=false){$(id).textContent=txt;$(id).classList.toggle('bad',error);}
@@ -27,6 +29,32 @@ function cleanWeb(url){
   return u.origin+'/';
 }
 function webBase(){try{return cleanWeb(localStorage.getItem(WEB_KEY)||DEFAULT_WEB);}catch{return '';}}
+// 서버가 배포되면 GitHub Pages의 공개 설정 파일에서 주소를 안전하게 자동 연결합니다.
+// 비밀키나 편지 내용은 설정 파일에 저장하지 않습니다.
+async function loadServiceConfig(){
+  if(api()&&webBase())return;
+  try {
+    const r=await fetch(SERVICE_CONFIG_URL,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+    if(!r.ok)return;
+    const o=await r.json();
+    if(!o?.apiBase||!o?.webBase)return;
+    const a=cleanApi(o.apiBase),w=cleanWeb(o.webBase);
+    if(a!==w.replace(/\/$/,''))return; // 안내 페이지와 API는 같은 공식 Worker에서 제공
+    const check=await fetch(a+'/v10/health',{cache:'no-store',signal:AbortSignal.timeout(8000)});
+    const j=await check.json();
+    if(!check.ok||j.service!=='secret-letter-v10'||j.ok!==true)return;
+    localStorage.setItem(KEY,a);localStorage.setItem(WEB_KEY,w);
+    $('apiInput').value=a;$('webInput').value=w;
+    status('setupState','✓ Cloudflare 서버가 자동으로 연결됐습니다.');
+  }catch {
+    // 네트워크가 없어도 오프라인 암호화 시험은 계속 이용할 수 있습니다.
+  }
+}
+function ensureServiceConfig(){
+  if(!serviceConfigPromise)serviceConfigPromise=loadServiceConfig();
+  return serviceConfigPromise;
+}
+
 async function request(endpoint,payload=null) {
   const root=api();if(!root)throw Error('아래 관리자 설정에서 Cloudflare 서비스 주소를 연결해 주세요.');
   const ctl=new AbortController(), timer=setTimeout(()=>ctl.abort(),12000);
@@ -71,6 +99,7 @@ async function sharePrepared(){
 }
 $('send').addEventListener('click',async()=>{
   const btn=$('send');
+  if(!api()||!webBase())await ensureServiceConfig();
   if(!api()||!webBase()){
     status('sendState','비밀편지 전송 서버를 준비하는 중입니다. 아직 편지를 보낼 수 없습니다. 개발자가 연결을 완료하면 이용할 수 있습니다.',true);
     return;
@@ -174,6 +203,7 @@ $('offlineDemo').addEventListener('click',async()=>{
   finally{button.disabled=false;}
 });
 setupTimes();page('compose');
+ensureServiceConfig();
 // App Links / Universal Links / custom scheme (네이티브 설정은 README 참고).
 if(native){
   // WebView visibilitychange만으로는 모든 기기의 앱 전환을 감지하지 못할 수 있습니다.
