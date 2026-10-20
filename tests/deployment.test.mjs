@@ -8,7 +8,7 @@ test('앱은 기존 9차 웹 주소를 기본값으로 사용하지 않는다',(
  const mobile=read('../mobile/src/main.js');
  assert.match(mobile,/VITE_WEB_BASE\s*\|\|\s*''/);
  assert.ok(!mobile.includes('aa4cef21.secret-letter'));
- assert.match(mobile,/if\(!base\)throw Error/);
+ assert.match(mobile,/if\(!api\(\)\|\|!webBase\(\)\)/);
  assert.match(mobile,/secret-letter-web-wjsdbswn/);
  assert.match(mobile,/WEB_KEY/);
 });
@@ -44,4 +44,12 @@ test('GitHub APK 빌드 직전에 자동 테스트를 수행한다',()=>{
  const workflow=read('../.github/workflows/android-apk.yml');
  assert.match(workflow,/name: 보안 및 소멸 기능 자동 테스트[\s\S]*?run: npm test/);
  assert.match(workflow,/name: 비밀편지-안드로이드-설치파일/);
+});
+
+test('보내기 버튼 한 번으로 암호화 등록 후 공유 창을 연다',()=>{
+ const html=read('../mobile/index.html'),script=read('../mobile/src/main.js');
+ assert.match(html,/id="send"[^>]*>↗ 비밀편지 보내기<\/button>/);
+ assert.match(script,/await request\('create',[\s\S]*?await sharePrepared\(\)/);
+ assert.match(script,/async function sharePrepared\(\)/);
+ assert.match(script,/if\(!api\(\)\|\|!webBase\(\)\)/);
 });
