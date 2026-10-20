@@ -134,6 +134,20 @@ async function report(db,r) {
      !partOK(r.iv,16,16)||!partOK(r.ciphertext,24,8192)) {
     return answer({error:'증거 보관 요청 형식이 올바르지 않습니다.'},400);
   }
+  // 신고자가 제출한 키가 실제 암호문을 복호화하는지 검증합니다.
+  // 신고된 편지에 한해서만 Worker 메모리에서 일시적으로 검증하며 원문은 저장하지 않습니다.
+  try {
+    const decode=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4)),ch=>ch.charCodeAt(0));
+    const bytes=decode(r.key),iv=decode(r.iv),cipher=decode(r.ciphertext);
+    if(bytes.length!==32||iv.length!==12||cipher.length<17||cipher.length>6144)throw Error('length');
+    const cryptoKey=await crypto.subtle.importKey('raw',bytes,'AES-GCM',false,['decrypt']);
+    bytes.fill(0);
+    const additionalData=new TextEncoder().encode('secret-letter-v10|'+r.id+'|'+r.mode+'|'+r.durationSeconds);
+    const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData},cryptoKey,cipher);
+    new Uint8Array(plaintext).fill(0);
+  } catch {
+    return answer({error:'증거 암호키가 원본 편지와 일치하지 않습니다.'},400);
+  }
   const fingerprint=await digestText(JSON.stringify([r.id,r.mode,r.durationSeconds,r.iv,r.ciphertext]));
   const tokenHash=await digestText(r.reportToken);
   // 열람 시 발급한 일회용 수령증으로 제출된 암호문이 실제 발급한 암호문과 일치하는지 확인합니다.
