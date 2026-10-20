@@ -7,8 +7,8 @@ import './style.css';
 
 const $=id=>document.getElementById(id);
 // 고정 웹 도메인으로 교체하면 모든 앱이 동일한 URL 형식을 사용합니다.
-const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || ''; // 서버 미배포 상태에서도 앱을 빌드할 수 있음
-const DEFAULT_API=import.meta.env.VITE_API_BASE || '';
+const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/';
+const DEFAULT_API=import.meta.env.VITE_API_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
 let mode='single',prepared=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
 const SERVICE_CONFIG_URL='https://raw.githubusercontent.com/wjsdbswn-star/secret-lette/main/server-config.json';
