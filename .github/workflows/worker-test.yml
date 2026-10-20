@@ -1,0 +1,22 @@
+name: 비밀편지 Cloudflare 서버 자동 테스트
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'tests/**'
+      - '.github/workflows/worker-test.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: D1 암호화 및 원클릭 서버 테스트
+        run: npm test
