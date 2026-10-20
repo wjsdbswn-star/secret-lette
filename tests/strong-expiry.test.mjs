@@ -88,3 +88,21 @@ test('v11 여럿: 공통 소멸시간, 복원된 과거 D1행에도 R2 암호문
  Date.now()+30_000,historical.ready);
  assert.equal((await req(env,'open',{id:c.id})).status,410);
 });
+
+test('v11 R2 delete failure never returns plaintext and retains retry tombstone',async()=>{
+ const env=envWithR2();const c=await add(env,'실패에도 복구 위험 최소화','single',30);
+ const del=env.PRIVATE_BLOBS.delete.bind(env.PRIVATE_BLOBS);
+ let failOnce=true;
+ env.PRIVATE_BLOBS.delete=async id=>{if(failOnce){failOnce=false;throw Error('simulated R2 network outage');}return del(id);};
+ const failed=await req(env,'open',{id:c.id});
+ assert.equal(failed.status,500); // Do not send ciphertext if delete did not succeed
+ const row=env.sqlite.prepare('SELECT ready,opened_at_ms FROM letters_v11 WHERE id=?').get(c.id);
+ assert.equal(row.ready,0);
+ assert.ok(row.opened_at_ms);
+ assert.equal((await req(env,'open',{id:c.id})).status,410);
+ assert.equal(env.objects.has('secure-v11/'+c.id),true);
+ let pending;await worker.scheduled({},env,{waitUntil:p=>{pending=p}});
+ await pending;
+ assert.equal(env.objects.has('secure-v11/'+c.id),false);
+ assert.equal(env.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v11 WHERE id=?').get(c.id).n,0);
+});
