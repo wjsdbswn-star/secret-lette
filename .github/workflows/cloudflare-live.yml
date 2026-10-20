@@ -1,0 +1,24 @@
+name: 비밀편지 Cloudflare 실제 연결 시험
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server-config.json'
+      - 'tests/cloudflare-live-smoke.mjs'
+      - '.github/workflows/cloudflare-live.yml'
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GitHub 소스 받기
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 배포된 Cloudflare Worker / D1 암호화 송수신 시험
+        run: node tests/cloudflare-live-smoke.mjs
