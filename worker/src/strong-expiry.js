@@ -64,12 +64,16 @@ async function getPayload(R2,id){
 export async function secureOpen(DB,R2,r){
  if(!idValid(r.id))return json({error:'잘못된 편지 주소입니다.'},400);
  const now=Date.now();
- const single=await DB.prepare(`DELETE FROM letters_v11
+ const single=await DB.prepare(`UPDATE letters_v11 SET ready=0,opened_at_ms=?
  WHERE id=? AND mode='single' AND ready=1 AND opened_at_ms IS NULL AND unopened_until_ms>?
- RETURNING duration_seconds AS durationSeconds`).bind(r.id,now).first();
+ RETURNING duration_seconds AS durationSeconds`).bind(now,r.id,now).first();
  if(single){
-  const payload=await getPayload(R2,r.id);
-  await R2.delete(objectKey(r.id)); // Fail closed if deletion fails
+  // Keep a tombstone if R2 deletion fails so scheduled cleanup can retry.
+  // ready=0 atomically prevents any simultaneous second reader.
+  let payload;
+  try{payload=await getPayload(R2,r.id);}
+  finally{await R2.delete(objectKey(r.id));}
+  await DB.prepare('DELETE FROM letters_v11 WHERE id=? AND ready=0').bind(r.id).run();
   if(!payload)return json({error:'편지가 이미 소멸했습니다.'},410);
   return json({ok:true,mode:'single',durationSeconds:single.durationSeconds,
    iv:payload.iv,ciphertext:payload.ciphertext,
@@ -100,7 +104,7 @@ export async function secureOpen(DB,R2,r){
 export async function secureCleanup(DB,R2){
  const now=Date.now();
  const expired=await DB.prepare(`SELECT id FROM letters_v11 WHERE
-   (ready=0 AND created_at_ms<?) OR
+   (ready=0 AND (opened_at_ms IS NOT NULL OR created_at_ms<?)) OR
    (opened_at_ms IS NULL AND unopened_until_ms<=?) OR
    (opened_at_ms IS NOT NULL AND expires_at_ms<=?) LIMIT 100`)
    .bind(now-5*60*1000,now,now).all();
