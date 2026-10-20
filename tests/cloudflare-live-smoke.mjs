@@ -63,4 +63,20 @@ assert.equal(g2.status,200,JSON.stringify(g2));
 assert.equal(g1.payload.deadlineAt,g2.payload.deadlineAt);
 assert.equal(await decryptLetter(g2.payload,group.key,group.id),'앱 연동 자동시험 · 여러 명');
 console.log('OK: shared group deadline and decrypt; data expires automatically');
-console.log('SUCCESS: Cloudflare live service verified. No secrets or plaintext stored remotely.');
+// 신고한 편지에만 키와 암호문을 30일간 보관하는 실제 D1 경로를 시험합니다.
+const evidenceLetter=await encryptLetter('공개 자동시험 문장입니다. 개인정보가 없습니다.','single',120);
+let evid=await post('/v10/create',{id:evidenceLetter.id,iv:evidenceLetter.iv,ciphertext:evidenceLetter.ciphertext,seconds:evidenceLetter.seconds,mode:evidenceLetter.mode});
+assert.equal(evid.status,201,JSON.stringify(evid));
+const openedEvidence=await post('/v10/open',{id:evidenceLetter.id});
+assert.equal(openedEvidence.status,200,JSON.stringify(openedEvidence));
+assert.match(openedEvidence.payload.reportToken,/^[a-f0-9]{48}$/);
+const evidence={id:evidenceLetter.id,reportToken:openedEvidence.payload.reportToken,key:evidenceLetter.key,
+ mode:openedEvidence.payload.mode,durationSeconds:openedEvidence.payload.durationSeconds,
+ iv:openedEvidence.payload.iv,ciphertext:openedEvidence.payload.ciphertext};
+const reported=await post('/v10/report',evidence);
+assert.equal(reported.status,201,JSON.stringify(reported));
+assert.equal(reported.payload.retentionDays,30);
+const replay=await post('/v10/report',evidence);
+assert.equal(replay.status,403);
+console.log('OK: real Cloudflare D1 optional report archived, once-only report receipt prevents replay');
+console.log('SUCCESS: Live Cloudflare v10.8 server verified. Only opt-in reports retain decryptable evidence.');
