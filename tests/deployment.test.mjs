@@ -53,3 +53,11 @@ test('보내기 버튼 한 번으로 암호화 등록 후 공유 창을 연다',
  assert.match(script,/async function sharePrepared\(\)/);
  assert.match(script,/if\(!api\(\)\|\|!webBase\(\)\)/);
 });
+
+test('앱은 Cloudflare 공개 주소를 자동으로 찾아 검증한다',()=>{
+ const script=read('../mobile/src/main.js'),cfg=JSON.parse(read('../server-config.json'));
+ assert.match(script,/SERVICE_CONFIG_URL='https:\/\/wjsdbswn-star\.github\.io\/secret-lette\/server-config\.json'/);
+ assert.match(script,/await fetch\(a\+'\/v10\/health'/);
+ assert.match(script,/if\(!api\(\)\|\|!webBase\(\)\)await ensureServiceConfig\(\)/);
+ assert.deepEqual(Object.keys(cfg).sort(),['apiBase','webBase']);
+});
