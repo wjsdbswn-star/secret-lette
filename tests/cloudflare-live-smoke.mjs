@@ -23,15 +23,19 @@ assert.equal(info.service,'secret-letter-v10');
 assert.equal(info.ok,true);
 console.log('OK: live Worker health and D1 initialized');
 
-let home;
-for(let n=0;n<15;n++){
+let home,homeHtml='';
+for(let n=0;n<18;n++){
  home=await get('/');
- if(home.status===200)break;
+ homeHtml=await home.text();
+ if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt'))break;
  await new Promise(resolve=>setTimeout(resolve,5000));
 }
 assert.equal(home.status,200,'Cloudflare deployment may still be updating');
-assert.match(await home.text(),/비밀편지가 도착했어요/);
-console.log('OK: Worker app-only landing');
+assert.match(homeHtml,/비밀편지가 도착했어요/);
+assert.match(homeHtml,/앱 설치 없이 웹에서 읽을 수 있습니다/,'최신 Worker에 웹 열람 코드 배포 필요');
+assert.match(homeHtml,/crypto\.subtle\.decrypt/);
+assert.doesNotMatch(homeHtml,/secretletter:\/\/open/);
+console.log('OK: live Worker serves app-free browser decryption and app install call-to-action');
 
 const single=await encryptLetter('앱 연동 자동시험 · 1회 🔒','single',30);
 let create=await post('/v10/create',{id:single.id,iv:single.iv,ciphertext:single.ciphertext,seconds:single.seconds,mode:'single'});
