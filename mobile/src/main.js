@@ -11,7 +11,7 @@ const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || ''; // 서버 미배포 상�
 const DEFAULT_API=import.meta.env.VITE_API_BASE || '';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
 let mode='single',prepared=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
-const SERVICE_CONFIG_URL='https://wjsdbswn-star.github.io/secret-lette/server-config.json';
+const SERVICE_CONFIG_URL='https://raw.githubusercontent.com/wjsdbswn-star/secret-lette/main/server-config.json';
 let serviceConfigPromise=null;
 const native=Capacitor.isNativePlatform();
 
