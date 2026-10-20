@@ -28,7 +28,7 @@ button,.install{display:block;width:100%;padding:15px;border:0;border-radius:12p
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const idMatch=location.pathname.match(/^\/l\/([A-Za-z0-9_-]{24})\/?$/);
+const idMatch=location.pathname.match(/^\/[ls]\/([A-Za-z0-9_-]{24})\/?$/);
 const id=idMatch?.[1], secret=new URLSearchParams(location.hash.slice(1)).get('k');
 if(!id && location.pathname!=='/'){
  $('notice').textContent='편지 주소를 확인해 주세요.';return;
@@ -52,7 +52,8 @@ $('open').onclick=async()=>{
  $('open').disabled=true;$('notice').textContent='암호화된 편지를 여는 중입니다…';
  const start=performance.now();
  try {
-  const r=await fetch('/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id}),cache:'no-store'});
+  const endpoint=location.pathname.startsWith('/s/')?'/v11/open':'/v10/open';
+  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id}),cache:'no-store'});
   const record=await r.json();
   if(!r.ok)throw Error(record.error||'편지를 읽을 수 없습니다.');
   const ttl=record.durationSeconds;
