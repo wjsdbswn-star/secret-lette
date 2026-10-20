@@ -104,7 +104,7 @@ export default {
     if (request.method==='OPTIONS') return new Response(null,{status:204,headers:HEADERS});
     const p = new URL(request.url).pathname.replace(/\/$/,'');
     try {
-      if (request.method==='GET' && (p==='/' || /^\/l\/[A-Za-z0-9_-]{24}$/.test(p))) return landingResponse();
+      if (request.method==='GET' && (p==='' || /^\/l\/[A-Za-z0-9_-]{24}$/.test(p))) return landingResponse();
       if (!env.DB) return answer({error:'D1 DB 바인딩이 없습니다.'},503);
       if (p!=='/v10/health' && p!=='/v10/create' && p!=='/v10/open') return answer({error:'없는 경로입니다.'},404);
       await ensureSchema(env.DB);
