@@ -1,4 +1,5 @@
 import {landingResponse} from './landing.js';
+import {secureReady,secureTable,secureCreate,secureOpen,secureCleanup} from './strong-expiry.js';
 // 비밀편지 v10: Cloudflare Worker + D1.
 // 개인 신원 인증 없음. URL(특히 #k=...)은 링크를 가진 사람에게 읽기 권한을 줍니다.
 // 서버에는 iv, ciphertext, 랜덤 ID와 소멸 메타데이터만 저장합니다.
@@ -104,7 +105,20 @@ export default {
     if (request.method==='OPTIONS') return new Response(null,{status:204,headers:HEADERS});
     const p = new URL(request.url).pathname.replace(/\/$/,'');
     try {
-      if (request.method==='GET' && (p==='' || /^\/l\/[A-Za-z0-9_-]{24}$/.test(p))) return landingResponse();
+      if (request.method==='GET' && (p==='' || /^\/[ls]\/[A-Za-z0-9_-]{24}$/.test(p))) return landingResponse();
+      if (p==='/v11/health' && request.method==='GET') {
+        return answer({ok:secureReady(env),service:'secret-letter-v11',storage:secureReady(env)?'r2-delete':'not-configured'},secureReady(env)?200:503);
+      }
+      if (p==='/v11/create' || p==='/v11/open') {
+        // Never silently downgrade to v10/D1 ciphertext storage.
+        if(!secureReady(env))return answer({error:'고급 소멸 저장소(R2)가 아직 연결되지 않았습니다.'},503);
+        if(request.method!=='POST')return answer({error:'POST만 허용합니다.'},405);
+        await secureTable(env.DB);
+        const input=await readBody(request);
+        return p==='/v11/create'
+          ?await secureCreate(env.DB,env.PRIVATE_BLOBS,input)
+          :await secureOpen(env.DB,env.PRIVATE_BLOBS,input);
+      }
       if (!env.DB) return answer({error:'D1 DB 바인딩이 없습니다.'},503);
       if (p!=='/v10/health' && p!=='/v10/create' && p!=='/v10/open') return answer({error:'없는 경로입니다.'},404);
       await ensureSchema(env.DB);
@@ -122,5 +136,14 @@ export default {
       return answer({error:'서버 오류: DB 연결 및 배포 설정을 확인해 주세요.'},500);
     }
   },
-  async scheduled(controller, env, ctx) { ctx.waitUntil(ensureSchema(env.DB).then(()=>cleanup(env.DB))); },
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil((async()=>{
+      await ensureSchema(env.DB);
+      await cleanup(env.DB);
+      if (secureReady(env)) {
+        await secureTable(env.DB);
+        await secureCleanup(env.DB,env.PRIVATE_BLOBS);
+      }
+    })());
+  },
 };
