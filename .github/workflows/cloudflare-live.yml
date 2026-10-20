@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'worker/**'
       - 'server-config.json'
       - 'tests/cloudflare-live-smoke.mjs'
       - '.github/workflows/cloudflare-live.yml'
