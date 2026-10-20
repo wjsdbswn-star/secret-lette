@@ -1,6 +1,6 @@
 // 비밀편지 v10 웹 열람 페이지. 브라우저에서만 AES-GCM 복호화합니다.
 // #k= 복호화 열쇠는 HTTP 요청 /v10/open에 전송되지 않습니다.
-const HTML = `<!doctype html><html lang="ko"><head>
+const HTML = String.raw`<!doctype html><html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="theme-color" content="#f7f8f6"><title>비밀편지 읽기</title>
