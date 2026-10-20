@@ -31,7 +31,7 @@ test('Worker는 앱 없이 브라우저에서 편지를 읽도록 제공한다',
   assert.match(html,/앱 설치 없이 웹에서 읽을 수 있습니다/);
   assert.match(html,/id="open" disabled>편지 열기/);
   assert.match(html,/비밀편지 앱 설치하기 \(안드로이드\)/);
-  assert.match(html,/fetch\('\/v10\/open'/);
+  assert.match(html,/location\.pathname\.startsWith\('\/s\/'\)\?'\/v11\/open':'\/v10\/open'/);
   assert.match(html,/crypto\.subtle\.decrypt/);
   assert.doesNotMatch(html,/secretletter:\/\/open/);
   assert.match(response.headers.get('Content-Security-Policy'),/connect-src 'self'/);
