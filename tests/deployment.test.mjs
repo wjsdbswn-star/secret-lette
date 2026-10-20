@@ -6,7 +6,8 @@ import {fileURLToPath} from 'node:url';
 const read=u=>readFileSync(new URL(u,import.meta.url),'utf8');
 test('앱은 기존 9차 웹 주소를 기본값으로 사용하지 않는다',()=>{
  const mobile=read('../mobile/src/main.js');
- assert.match(mobile,/VITE_WEB_BASE\s*\|\|\s*''/);
+ assert.match(mobile,/VITE_WEB_BASE\s*\|\|\s*'https:\/\/secret-letter-mobile-v10\.wjsdbswn\.workers\.dev\/'/);
+ assert.match(mobile,/VITE_API_BASE\s*\|\|\s*'https:\/\/secret-letter-mobile-v10\.wjsdbswn\.workers\.dev'/);
  assert.ok(!mobile.includes('aa4cef21.secret-letter'));
  assert.match(mobile,/if\(!api\(\)\|\|!webBase\(\)\)/);
  assert.match(mobile,/secret-letter-web-wjsdbswn/);
