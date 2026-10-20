@@ -9,7 +9,7 @@ on:
       - '.github/workflows/android-apk.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android:
@@ -66,3 +66,13 @@ jobs:
           name: 비밀편지-안드로이드-설치파일
           path: secret-letter-v10-test.apk
           if-no-files-found: error
+      - name: 공개 APK 설치 링크 갱신 (시험용)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp ../secret-letter-v10-test.apk /tmp/secret-letter.apk
+          if gh release view v10.7 --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload v10.7 /tmp/secret-letter.apk --clobber --repo "${{ github.repository }}"
+          else
+            gh release create v10.7 /tmp/secret-letter.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "비밀편지 v10.7 Android 시험판" --notes "읽기는 앱 설치 없이 웹브라우저에서, 쓰기와 보내기는 안드로이드 앱에서 합니다. 보안 검증 전 시험판으로 실제 민감한 편지는 보내지 마세요. 기존 Debug APK와 서명이 달라 덮어쓰기 설치가 안 될 수 있습니다."
+          fi
