@@ -8,4 +8,4 @@ binding = "DB"
 database_name = "secret-letter-mobile-v10"
 
 [triggers]
-crons = ["0 * * * *"]
+crons = ["* * * * *"]
