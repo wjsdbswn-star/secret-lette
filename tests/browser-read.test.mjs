@@ -86,7 +86,7 @@ test('신고 증거 30일 보관은 유효한 열람 증명과 원래 암호문�
  assert.match(opened.reportToken,/^[a-f0-9]{48}$/);
  const proof={id:letter.id,reportToken:opened.reportToken,key:letter.key,mode:opened.mode,durationSeconds:opened.durationSeconds,iv:opened.iv,ciphertext:opened.ciphertext};
  r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...proof,ciphertext:opened.ciphertext+'A'})}),{DB});
- assert.equal(r.status,403);
+ assert.equal(r.status,400,'tampered ciphertext is rejected by AES-GCM before receipt check');
  r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proof)}),{DB});
  assert.equal(r.status,201);
  assert.equal((await r.json()).retentionDays,30);
