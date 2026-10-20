@@ -101,3 +101,39 @@ test('일반 편지의 증거 보관은 기본적으로 생성되지 않는다',
  const result=await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10').bind().first();
  assert.equal(result.n,0);
 });
+
+test('잘못된 신고 암호키는 자동 보관하지 않고 올바른 키는 받는다',async()=>{
+ const DB=makeD1();
+ const letter=await encryptLetter('증거 키 일치 테스트','group',120);
+ const send=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id,mode:letter.mode,seconds:letter.seconds,iv:letter.iv,ciphertext:letter.ciphertext})}),{DB});
+ assert.equal(send.status,201);
+ const opened=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
+ const record=await opened.json();
+ const evidence={id:letter.id,reportToken:record.reportToken,key:letter.key,mode:record.mode,durationSeconds:record.durationSeconds,iv:record.iv,ciphertext:record.ciphertext};
+ const bad=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...evidence,key:'A'.repeat(43)})}),{DB});
+ assert.equal(bad.status,400);
+ const good=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evidence)}),{DB});
+ assert.equal(good.status,201,'invalid report does not burn the valid receipt');
+});
+test('기간 지난 신고 증거는 예약 작업으로 자동 삭제된다',async()=>{
+ const DB=makeD1();
+ const letter=await encryptLetter('30일 자동 삭제 모의시험','single',30);
+ const put=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id,mode:letter.mode,seconds:letter.seconds,iv:letter.iv,ciphertext:letter.ciphertext})}),{DB});
+ assert.equal(put.status,201);
+ const opened=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
+ const record=await opened.json();
+ const save=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id,reportToken:record.reportToken,key:letter.key,mode:record.mode,durationSeconds:record.durationSeconds,iv:record.iv,ciphertext:record.ciphertext})}),{DB});
+ assert.equal(save.status,201);
+ await DB.prepare('UPDATE reports_v10 SET delete_after_ms=0 WHERE id=?').bind(letter.id).run();
+ let task;
+ await worker.scheduled({}, {DB}, {waitUntil(p){task=p}});
+ await task;
+ const result=await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10 WHERE id=?').bind(letter.id).first();
+ assert.equal(result.n,0);
+});
+test('같은 접속 환경의 과도한 생성 요청은 자동 제한한다',async()=>{
+ const DB=makeD1();
+ let result;
+ for(let n=0;n<61;n++)result=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.88'},body:'{}'}),{DB});
+ assert.equal(result.status,429);
+});
