@@ -57,29 +57,37 @@ for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('cl
   $('modeInfo').textContent=mode==='single'?'첫 열람 요청만 성공합니다. 수신자 신원은 확인하지 않습니다.':'첫 사람이 열면 공통 소멸시간이 시작되고, 링크 소지자 모두 읽을 수 있습니다.';
   clearReady();
 });
-$('send').addEventListener('click',async()=>{
-  const btn=$('send');btn.disabled=true;status('sendState','암호화하고 서버에 등록하는 중입니다…');clearReady();
+async function sharePrepared(){
+  if(!prepared){status('sendState','보낼 링크를 먼저 준비해 주세요.',true);return;}
   try{
-    const base=webBase();
-    if(!base)throw Error('v10 전용 공유 주소가 연결되지 않았습니다. 서버 배포 후 설정해 주세요.');
-    const sec=timeSeconds();if(sec<1||sec>MAX_SECONDS)throw Error('1초 이상 30일 23시간 59분 59초 이하로 설정해 주세요.');
-    const data=await encryptLetter($('message').value.trim(),mode,sec);
-    // 원문과 키를 보낼 수 없도록 필드를 직접 지정합니다.
-    await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
-    prepared=buildShareLink(base,data.id,data.key);
-    $('shareLink').value=prepared;$('ready').classList.remove('hidden');
-    status('sendState','✓ 비밀편지가 준비됐습니다. 아래 공유 버튼을 눌러 주세요.');
-  }catch(e){status('sendState','만들기 실패: '+e.message,true);}finally{btn.disabled=false;}
-});
-$('share').addEventListener('click',async()=>{
-  if(!prepared){status('sendState','먼저 편지를 만들어 주세요.',true);return;}
-  try {
     if(native)await Share.share({title:'비밀편지',text:'비밀편지가 도착했어요. 비밀편지 앱에서 열어 보세요.',url:prepared,dialogTitle:'비밀편지 보내기'});
     else if(navigator.share)await navigator.share({title:'비밀편지',text:'비밀편지가 도착했어요.',url:prepared});
-    else throw Error('이 기기에서는 아래 링크를 복사해 주세요.');
-    status('sendState','공유 화면을 닫았습니다. 실제 전송 여부를 확인해 주세요.');
-  }catch(e){status('sendState',e?.name==='AbortError'?'공유를 취소했습니다.':'공유 실패: '+e.message,e?.name!=='AbortError');}
+    else throw Error('이 기기에서는 링크 복사를 이용해 주세요.');
+    status('sendState','공유 창을 닫았습니다. 카카오톡 등에 실제로 전송했는지 확인해 주세요.');
+  }catch(e){
+    if(e?.name==='AbortError')status('sendState','공유를 취소했습니다. 편지는 준비된 상태이며 언제든 다시 보낼 수 있습니다.');
+    else status('sendState','공유 창이 열리지 않았습니다. 아래 「공유 앱 다시 열기」 또는 「링크 복사」를 이용해 주세요.',true);
+  }
+}
+$('send').addEventListener('click',async()=>{
+  const btn=$('send');
+  if(!api()||!webBase()){
+    status('sendState','비밀편지 전송 서버를 준비하는 중입니다. 아직 편지를 보낼 수 없습니다. 개발자가 연결을 완료하면 이용할 수 있습니다.',true);
+    return;
+  }
+  btn.disabled=true;clearReady();status('sendState','암호화하고 비밀편지 링크를 준비하는 중입니다…');
+  try{
+    const sec=timeSeconds();if(sec<1||sec>MAX_SECONDS)throw Error('1초 이상 30일 23시간 59분 59초 이하로 설정해 주세요.');
+    const data=await encryptLetter($('message').value.trim(),mode,sec);
+    await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
+    prepared=buildShareLink(webBase(),data.id,data.key);
+    $('shareLink').value=prepared;$('ready').classList.remove('hidden');
+    status('sendState','✓ 준비 완료. 공유 앱을 선택해 비밀편지를 보내세요.');
+    await sharePrepared();
+  }catch(e){status('sendState','보내기 실패: '+e.message,true);}
+  finally{btn.disabled=false;}
 });
+$('share').addEventListener('click',sharePrepared);
 $('copy').addEventListener('click',async()=>{
   if(!prepared)return;
   try{if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
