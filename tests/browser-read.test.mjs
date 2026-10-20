@@ -19,7 +19,7 @@ function makeD1(){
  return DB;
 }
 function fakeDocument(){
- const ids=['hint','open','during','letter','close','notice','time'];
+ const ids=['hint','open','during','letter','close','notice','time','report'];
  const elements=Object.fromEntries(ids.map(id=>{
   const classes=new Set(id==='during'?['hidden']:[]);
   return [id,{textContent:'',disabled:id==='open',classList:{add(x){classes.add(x)},remove(x){classes.delete(x)},contains(x){return classes.has(x)}}}];
@@ -45,7 +45,7 @@ test('편지를 받으면 앱 없이 브라우저에서 복호화하고 최초 �
  const callbacks={};
  const context={document,location,history,URLSearchParams,Uint8Array,TextEncoder,TextDecoder,atob,
    crypto:webcrypto,performance,
-   setInterval(fn){callbacks.tick=fn;return 1},clearInterval(){},window:{addEventListener(){}},
+   setInterval(fn){callbacks.tick=fn;return 1},clearInterval(){},confirm(){return true},window:{addEventListener(){}},
    fetch:async(path,options)=>worker.fetch(new Request('https://letter.test'+path,options),{DB})
  };
  vm.runInNewContext(script,context);
@@ -55,6 +55,9 @@ test('편지를 받으면 앱 없이 브라우저에서 복호화하고 최초 �
  assert.equal(elements.during.classList.contains('hidden'),false);
  assert.equal(elements.open.classList.contains('hidden'),true);
  assert.equal(typeof callbacks.tick,'function');
+ assert.equal(elements.report.classList.contains('hidden'),false);
+ await elements.report.onclick();
+ assert.match(elements.notice.textContent,/30일 증거 보관 접수 완료/);
  elements.close.onclick();
  assert.equal(elements.letter.textContent,'');
  const retry=await worker.fetch(new Request('https://letter.test/v10/open',{
@@ -69,4 +72,32 @@ test('9차 웹페이지의 편지 쓰기 UI는 숨기고 기존 링크 해독은
  assert.match(html,/location\.hash\.startsWith\('#letter='\)/);
  assert.match(html,/secret-letter-v7\|/);
  assert.match(html,/releases\/latest\/download\/secret-letter\.apk/);
+});
+
+test('신고 증거 30일 보관은 유효한 열람 증명과 원래 암호문이 필요하다',async()=>{
+ const DB=makeD1();
+ const letter=await encryptLetter('피해증거 저장 테스트','single',40);
+ const body={id:letter.id,mode:letter.mode,seconds:letter.seconds,iv:letter.iv,ciphertext:letter.ciphertext};
+ let r=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),{DB});
+ assert.equal(r.status,201);
+ r=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
+ assert.equal(r.status,200);
+ const opened=await r.json();
+ assert.match(opened.reportToken,/^[a-f0-9]{48}$/);
+ const proof={id:letter.id,reportToken:opened.reportToken,key:letter.key,mode:opened.mode,durationSeconds:opened.durationSeconds,iv:opened.iv,ciphertext:opened.ciphertext};
+ r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...proof,ciphertext:opened.ciphertext+'A'})}),{DB});
+ assert.equal(r.status,403);
+ r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proof)}),{DB});
+ assert.equal(r.status,201);
+ assert.equal((await r.json()).retentionDays,30);
+ r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proof)}),{DB});
+ assert.equal(r.status,403,'replayed proof must be rejected');
+ r=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
+ assert.equal(r.status,410,'report must not restore a consumed one-time letter');
+});
+test('일반 편지의 증거 보관은 기본적으로 생성되지 않는다',async()=>{
+ const DB=makeD1();
+ await worker.fetch(new Request('https://letter.test/v10/health'),{DB});
+ const result=await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10').bind().first();
+ assert.equal(result.n,0);
 });
