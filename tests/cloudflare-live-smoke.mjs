@@ -23,8 +23,13 @@ assert.equal(info.service,'secret-letter-v10');
 assert.equal(info.ok,true);
 console.log('OK: live Worker health and D1 initialized');
 
-const home=await get('/');
-assert.equal(home.status,200);
+let home;
+for(let n=0;n<15;n++){
+ home=await get('/');
+ if(home.status===200)break;
+ await new Promise(resolve=>setTimeout(resolve,5000));
+}
+assert.equal(home.status,200,'Cloudflare deployment may still be updating');
 assert.match(await home.text(),/비밀편지가 도착했어요/);
 console.log('OK: Worker app-only landing');
 
