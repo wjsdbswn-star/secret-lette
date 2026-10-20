@@ -36,3 +36,13 @@ test('Worker는 앱 없이 브라우저에서 편지를 읽도록 제공한다',
   assert.doesNotMatch(html,/secretletter:\/\/open/);
   assert.match(response.headers.get('Content-Security-Policy'),/connect-src 'self'/);
 });
+
+test('개인 편지 원문을 미리보기 메타데이터로 노출하지 않고 신고 UI를 제공합니다',async()=>{
+ const id='a'.repeat(24);
+ const response=await worker.fetch(new Request('https://sample.workers.dev/l/'+id),{});
+ const html=await response.text();
+ assert.match(html,/property="og:title"/);
+ assert.match(html,/property="og:description"/);
+ assert.match(html,/id="report"/);
+ assert.match(html,/\/v10\/report/);
+});
