@@ -49,8 +49,11 @@ export async function secureCreate(DB,R2,r){
   await DB.prepare('UPDATE letters_v11 SET ready=1 WHERE id=?').bind(r.id).run();
   return json({ok:true,id:r.id,unopenedUntil:now+UNOPENED_MS},201);
  }catch(e){
-  try{await R2.delete(objectKey(r.id));}catch{}
-  await DB.prepare('DELETE FROM letters_v11 WHERE id=? AND ready=0').bind(r.id).run();
+  // If R2 deletion fails retain ready=0 tombstone for the next scheduled retry.
+  try{
+   await R2.delete(objectKey(r.id));
+   await DB.prepare('DELETE FROM letters_v11 WHERE id=? AND ready=0').bind(r.id).run();
+  }catch{}
   throw e;
  }
 }
