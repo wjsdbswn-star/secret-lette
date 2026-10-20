@@ -7,3 +7,6 @@
 nav{display:flex;gap:7px;margin-bottom:16px}nav button{flex:1;background:#f0f6f1;color:#416c50;font-size:14px}nav button.on{background:#2c6348;color:#fff}
 #settingPanel{margin-top:14px}.inline-row{display:flex;gap:8px}.inline-row button{flex:1}.status:empty{display:none}
 small.mini{font-size:12px;color:#777}.topgap{margin-top:14px}main{padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+
+/* v10.8: 편지 작성 화면 */
+.safety-note{background:#fff8ec;border:1px solid #ebd7b2;border-radius:12px;padding:12px 13px;margin:16px 0 0;color:#685032;font-size:12px;line-height:1.65}.panel .primary{margin-top:13px}#message{min-height:195px}
