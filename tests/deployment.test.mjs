@@ -39,7 +39,7 @@ test('새 링크가 유효하지 않으면 이전 열람 대기를 지운다',()
 });
 test('네이티브 앱이 백그라운드로 가면 열린 편지를 닫는다',()=>{
  const script=read('../mobile/src/main.js');
- assert.match(script,/App\.addListener\('appStateChange',[\s\S]*?!isActive&&watch\)stopReading\(\)/);
+ assert.match(script,/App\.addListener\('appStateChange',[\s\S]*?!isActive\)[\s\S]*?if\(watch\)stopReading\(\)/);
 });
 test('GitHub APK 빌드 직전에 자동 테스트를 수행한다',()=>{
  const workflow=read('../.github/workflows/android-apk.yml');

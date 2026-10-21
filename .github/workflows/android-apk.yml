@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'mobile/**'
+      - 'tests/**'
       - 'scripts/patch_native.mjs'
       - '.github/workflows/android-apk.yml'
 
