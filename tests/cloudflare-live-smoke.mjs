@@ -28,7 +28,7 @@ let home,homeHtml='';
 for(let n=0;n<18;n++){
  home=await get('/');
  homeHtml=await home.text();
- if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt'))break;
+ if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt') && homeHtml.includes('id="senderJump"'))break;
  await new Promise(resolve=>setTimeout(resolve,5000));
 }
 assert.equal(home.status,200,'Cloudflare deployment may still be updating');
@@ -37,18 +37,25 @@ assert.match(homeHtml,/앱 설치 없이 웹에서 읽을 수 있습니다/,'최
 assert.match(homeHtml,/crypto\.subtle\.decrypt/);
 assert.match(homeHtml,/property="og:title"/);
 assert.match(homeHtml,/id="report"/);
+assert.match(homeHtml,/id="senderJump"/,'보낸 사람 전용 미리보기 버튼이 배포되지 않았습니다.');
 assert.doesNotMatch(homeHtml,/secretletter:\/\/open/);
 console.log('OK: live Worker serves app-free browser decryption and app install call-to-action');
 
 const single=await encryptLetter('앱 연동 자동시험 · 1회 🔒','single',30);
 let create=await post('/v10/create',{id:single.id,iv:single.iv,ciphertext:single.ciphertext,seconds:single.seconds,mode:'single'});
 assert.equal(create.status,201,JSON.stringify(create));
+const availability=await post('/v10/status',{id:single.id});
+assert.equal(availability.status,200,'비소모 상태 조회 기능이 Cloudflare에 배포되지 않았습니다.');
+assert.equal(availability.payload.available,true);
 const landing=await get('/l/'+single.id);
 assert.equal(landing.status,200);
 let first=await post('/v10/open',{id:single.id});
 assert.equal(first.status,200,JSON.stringify(first));
 assert.match(first.payload.reportToken,/^[a-f0-9]{48}$/);
 assert.equal(await decryptLetter(first.payload,single.key,single.id),'앱 연동 자동시험 · 1회 🔒');
+const afterPreview=await post('/v10/status',{id:single.id});
+assert.equal(afterPreview.status,200);
+assert.equal(afterPreview.payload.available,false);
 let second=await post('/v10/open',{id:single.id});
 assert.equal(second.status,410,JSON.stringify(second));
 console.log('OK: encrypted one-time create/open/decrypt and second-open rejection');
@@ -79,4 +86,4 @@ assert.equal(reported.payload.retentionDays,30);
 const replay=await post('/v10/report',evidence);
 assert.equal(replay.status,403);
 console.log('OK: real Cloudflare D1 optional report archived, once-only report receipt prevents replay');
-console.log('SUCCESS: Live Cloudflare v10.8 server verified. Only opt-in reports retain decryptable evidence.');
+console.log('SUCCESS: Live Cloudflare v10.9 server verified. Only opt-in reports retain decryptable evidence.');
