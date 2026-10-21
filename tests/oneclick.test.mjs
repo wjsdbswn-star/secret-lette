@@ -29,7 +29,7 @@ test('Worker는 앱 없이 브라우저에서 편지를 읽도록 제공한다',
   const html=await response.text();
   assert.match(html,/비밀편지가 도착했어요/);
   assert.match(html,/앱 설치 없이 웹에서 읽을 수 있습니다/);
-  assert.match(html,/id="open" disabled>편지 열기/);
+  assert.match(html,/id="open" disabled>받은 편지 열기 \(1회 열람\)/);
   assert.match(html,/비밀편지 앱 설치하기 \(안드로이드\)/);
   assert.match(html,/location\.pathname\.startsWith\('\/s\/'\)\?'\/v11\/open':'\/v10\/open'/);
   assert.match(html,/crypto\.subtle\.decrypt/);

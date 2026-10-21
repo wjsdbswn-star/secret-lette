@@ -19,10 +19,10 @@ function makeD1(){
  return DB;
 }
 function fakeDocument(){
- const ids=['hint','open','during','letter','close','notice','time','report'];
+ const ids=['hint','open','during','letter','close','notice','time','report','senderGuide','senderJump'];
  const elements=Object.fromEntries(ids.map(id=>{
   const classes=new Set(id==='during'?['hidden']:[]);
-  return [id,{textContent:'',disabled:id==='open',classList:{add(x){classes.add(x)},remove(x){classes.delete(x)},contains(x){return classes.has(x)}}}];
+  return [id,{textContent:'',disabled:id==='open',style:{},href:'',classList:{add(x){classes.add(x)},remove(x){classes.delete(x)},contains(x){return classes.has(x)}}}];
  }));
  return {elements,document:{hidden:false,getElementById(id){return elements[id]},addEventListener(){}}};
 }

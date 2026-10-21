@@ -48,5 +48,5 @@ test('받는 웹페이지에 발신자용 앱 링크가 있으며 누르는 것�
  assert.match(html,/id="senderJump"/);
  assert.match(html,/secretletter:\/\/sent\//);
  assert.match(html,/보낸 사람/);
- assert.match(html,/발신자가 .*받는 사람/);
+ assert.match(html,/보낸 사람이 이 버튼으로 열면 받는 사람이/);
 });
