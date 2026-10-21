@@ -11,7 +11,7 @@ const folder=path.join(root,'worker');
 const wrangler=path.join(folder,'node_modules','.bin',process.platform==='win32'?'wrangler.cmd':'wrangler');
 const configPath=path.join(folder,'wrangler.auto.toml');
 const expectedUrl='https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
-function run(bin,args,{quiet=false,cwd=folder}={}){
+function run(bin,args,{quiet=false,cwd=root}={}){
  const r=spawnSync(bin,args,{cwd,stdio:quiet?'pipe':'inherit',encoding:'utf8',shell:process.platform==='win32'});
  if(r.error||r.status!==0)throw Error((r.stderr||r.stdout||r.error?.message||'').slice(-1100)||'명령 실패: '+bin);
  return (r.stdout||'').trim();
@@ -39,7 +39,7 @@ async function main(){
  if(!config.includes('database_id = "'+dbid+'"'))throw Error('D1 바인딩 구성 실패.');
  writeFileSync(configPath,config,'utf8');
  console.log('[4/4] 기존 Worker 업데이트 (기존 D1 데이터는 삭제하지 않음)');
- const out=run(wrangler,['deploy','--config','wrangler.auto.toml'],{quiet:true});
+ const out=run(wrangler,['deploy','--config','wrangler.auto.toml'],{quiet:true,cwd:folder});
  console.log(out);
  if(!out.includes('secret-letter-mobile-v10'))console.log('주의: 배포 대상 Worker 이름을 다시 확인해 주세요.');
  const health=await fetch(expectedUrl+'/v10/health',{cache:'no-store',signal:AbortSignal.timeout(15000)});
