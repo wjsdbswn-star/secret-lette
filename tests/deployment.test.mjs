@@ -62,3 +62,10 @@ test('앱은 Cloudflare 공개 주소를 자동으로 찾아 검증한다',()=>{
  assert.match(script,/if\(!api\(\)\|\|!webBase\(\)\)await ensureServiceConfig\(\)/);
  assert.deepEqual(Object.keys(cfg).sort(),['apiBase','webBase']);
 });
+
+
+test('기존 Cloudflare Worker 전용 업데이트 도우미는 신규 자원을 만들지 않는다',()=>{
+ const result=execFileSync('node',[fileURLToPath(new URL('../scripts/update_worker_v10.mjs',import.meta.url)),'--dry-run'],{encoding:'utf8'});
+ assert.match(result,/DRY RUN OK/);
+ assert.match(result,/신규 자원 생성 없음/);
+});
