@@ -26,7 +26,9 @@ button,.install{display:block;width:100%;padding:15px;border:0;border-radius:12p
 </style></head><body><main><section>
 <div style="font-size:36px">✉️</div><h1>비밀편지가 도착했어요</h1>
 <p id="hint">앱 설치 없이 웹에서 읽을 수 있습니다.<br>편지 열기를 누르면 열람 시간이 시작됩니다.</p>
-<button id="open" disabled>편지 열기</button>
+<button id="open" disabled>받은 편지 열기 (1회 열람)</button>
+<p class="small" id="senderGuide" style="display:none">보낸 사람이 이 버튼으로 열면 받는 사람이 읽을 수 없습니다. 보낸 사람은 아래의 앱 확인을 이용하세요.</p>
+<a id="senderJump" class="install hidden" rel="noopener noreferrer" href="#">보낸 사람 · 앱에서 내 편지 확인</a>
 <div id="during" class="hidden"><p id="time"></p><div id="letter"></div>
 <p id="reportInfo">협박·괴롭힘 등 피해를 받았다면 편지를 닫기 전에 증거 보관을 요청할 수 있습니다. 제출된 편지와 열람키는 30일간 별도 보관됩니다. 자동으로 수사기관에 신고되지는 않습니다.</p>
 <button id="report" class="report hidden" type="button">⚑ 증거 보관 요청 (30일)</button>
@@ -50,6 +52,11 @@ if(!secret || !/^[A-Za-z0-9_-]{43}$/.test(secret)){
  $('notice').textContent='편지 암호키가 없거나 링크가 잘못되었습니다.';return;
 }
 $('open').disabled=false;
+if(location.pathname.startsWith('/l/')){
+ $('senderGuide').style.display='block';
+ $('senderJump').href='secretletter://sent/'+id;
+ $('senderJump').classList.remove('hidden');
+}
 let watch=null,plainShown=false,reportEvidence=null;
 const base64url=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4)),ch=>ch.charCodeAt(0));
 const close=()=>{

@@ -4,13 +4,14 @@ import {Share} from '@capacitor/share';
 import {Clipboard} from '@capacitor/clipboard';
 import {encryptLetter,decryptLetter,buildShareLink,parseIncomingLink,MAX_SECONDS} from './letter.js';
 import './style.css';
+import {rememberSent,lookupSent,forgetSent,parseSentDeepLink} from './sent-preview.js';
 
 const $=id=>document.getElementById(id);
 // 고정 웹 도메인으로 교체하면 모든 앱이 동일한 URL 형식을 사용합니다.
 const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/';
 const DEFAULT_API=import.meta.env.VITE_API_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
-let mode='single',prepared=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
+let mode='single',prepared=null,preparedId=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
 const SERVICE_CONFIG_URL='https://raw.githubusercontent.com/wjsdbswn-star/secret-lette/main/server-config.json';
 let serviceConfigPromise=null;
 const native=Capacitor.isNativePlatform();
@@ -70,14 +71,14 @@ async function request(endpoint,payload=null) {
 }
 function page(name){
   if(name!=='reader' && watch)stopReading(true);
-  $('compose').classList.toggle('hidden',name!=='compose');$('reader').classList.toggle('hidden',name!=='reader');
+  $('compose').classList.toggle('hidden',name!=='compose');$('reader').classList.toggle('hidden',name!=='reader');$('sender').classList.toggle('hidden',name!=='sender');
   $('goCompose').classList.toggle('on',name==='compose');$('goReader').classList.toggle('on',name==='reader');
 }
 function timeSeconds(){return ['days','hours','minutes','seconds'].reduce((v,id,i)=>v+Number($(id).value)*[86400,3600,60,1][i],0);}
 function setupTimes(){for(const [id,max] of [['days',30],['hours',23],['minutes',59],['seconds',59]]){
   for(let n=0;n<=max;n++){const o=document.createElement('option');o.value=n;o.textContent=String(n).padStart(2,'0');$(id).append(o);}
 } $('minutes').value='1';}
-function clearReady(){prepared=null;$('ready').classList.add('hidden');$('shareLink').value='';}
+function clearReady(){prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
 for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>{
@@ -117,6 +118,10 @@ $('send').addEventListener('click',async()=>{
     const data=await encryptLetter($('message').value.trim(),mode,sec);
     await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
     prepared=buildShareLink(webBase(),data.id,data.key);
+    preparedId=data.id;
+    // 기기 안에 암호문과 키를 15분간 임시 저장합니다. 서버에 평문/키를 보내지 않습니다.
+    try{rememberSent(data);$('senderPreviewButton').classList.remove('hidden');}
+    catch{status('sendState','공유는 가능하지만 이 기기의 미리보기 저장은 사용할 수 없습니다.',true);}
     $('shareLink').value=prepared;
     status('sendState','카카오톡·문자 등 보낼 앱을 선택해 주세요.');
     await sharePrepared();
@@ -129,6 +134,29 @@ $('copy').addEventListener('click',async()=>{
     status('sendState','링크를 복사했습니다. 카카오톡에 붙여넣으세요.');}
   catch{ $('shareLink').focus();$('shareLink').select();status('sendState','링크를 길게 눌러 복사해 주세요.',true);}
 });
+// 발신자 앱에서만 원본 암호문+키를 확인하며 수신용 /v10/open은 호출하지 않습니다.
+async function showSentPreview(id){
+  page('compose');
+  let saved;
+  try{saved=lookupSent(id);}catch{}
+  if(!saved){status('sendState','이 기기에 확인 가능한 보낸 편지가 없습니다. 발송 후 15분이 지났거나 다른 기기입니다.',true);return;}
+  try{
+    const state=await request('status',{id});
+    if(state.available!==true){forgetSent(id);throw Error('받는 사람이 이미 읽었거나 편지가 만료되었습니다.');}
+    const text=await decryptLetter({mode:saved.mode,durationSeconds:saved.seconds,iv:saved.iv,ciphertext:saved.ciphertext},saved.key,saved.id);
+    $('senderPlain').textContent=text;
+    $('sender').dataset.id=id;
+    page('sender');
+  }catch(e){status('sendState','보낸 편지 확인 불가: '+e.message,true);}
+}
+function closeSentPreview(){
+  $('senderPlain').textContent='';
+  $('sender').dataset.id='';
+  page('compose');
+}
+$('senderPreviewButton').addEventListener('click',()=>{if(preparedId)showSentPreview(preparedId);});
+$('senderClose').addEventListener('click',closeSentPreview);
+$('senderDelete').addEventListener('click',()=>{const id=$('sender').dataset.id;if(id)forgetSent(id);closeSentPreview();$('senderPreviewButton').classList.add('hidden');status('sendState','내 기기에 보관된 임시 확인 기록을 삭제했습니다.');});
 $('apiInput').value=api();
 $('webInput').value=webBase();
 $('apiSave').addEventListener('click',async()=>{
@@ -193,8 +221,8 @@ $('checkLink').addEventListener('click',()=>{
   if(!raw){status('readerState','카카오톡에서 복사한 비밀편지 링크를 붙여넣으세요.',true);return;}
   receiveLink(raw);
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&watch)stopReading();});
-window.addEventListener('pagehide',()=>{if(watch)stopReading();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(watch)stopReading();if(!$('sender').classList.contains('hidden'))closeSentPreview();}});
+window.addEventListener('pagehide',()=>{if(watch)stopReading();if(!$('sender').classList.contains('hidden'))closeSentPreview();});
 
 $('offlineDemo').addEventListener('click',async()=>{
   const button=$('offlineDemo');button.disabled=true;
@@ -214,8 +242,9 @@ ensureServiceConfig();
 if(native){
   // WebView visibilitychange만으로는 모든 기기의 앱 전환을 감지하지 못할 수 있습니다.
   // 네이티브 백그라운드 전환에서도 편지 화면을 즉시 닫습니다.
-  App.addListener('appStateChange',({isActive})=>{if(!isActive&&watch)stopReading();});
-  App.addListener('appUrlOpen',e=>{if(e?.url)receiveLink(e.url);});
-  App.getLaunchUrl().then(x=>{if(x?.url)receiveLink(x.url);}).catch(()=>{});
+  App.addListener('appStateChange',({isActive})=>{if(!isActive){if(watch)stopReading();if(!$('sender').classList.contains('hidden'))closeSentPreview();}});
+  const incomingUrl=url=>{const senderId=parseSentDeepLink(url);if(senderId)showSentPreview(senderId);else receiveLink(url);};
+  App.addListener('appUrlOpen',e=>{if(e?.url)incomingUrl(e.url);});
+  App.getLaunchUrl().then(x=>{if(x?.url)incomingUrl(x.url);}).catch(()=>{});
 }
 // 브라우저에서는 개발 서버에서만 기능 시험. 공개된 웹 수신 페이지에는 이 코드를 배포하지 않습니다.

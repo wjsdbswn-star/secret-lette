@@ -127,6 +127,16 @@ async function open(db, r) {
     durationSeconds:group.durationSeconds,deadlineAt:group.deadlineAt,serverNow:Date.now(),reportToken});
 }
 
+async function statusOf(db,r) {
+  if(!idOK(r.id))return answer({error:'잘못된 편지 주소입니다.'},400);
+  const now=Date.now();
+  // 상태만 확인하고 암호문은 반환하지 않으며 1회 열람을 차감하지 않습니다.
+  const row=await db.prepare(`SELECT id FROM letters_v10 WHERE id=? AND
+    ((opened_at_ms IS NULL AND unopened_until_ms>?) OR
+     (mode='group' AND expires_at_ms>?))`).bind(r.id,now,now).first();
+  return answer({available:!!row});
+}
+
 async function report(db,r) {
   if(!idOK(r.id)||typeof r.reportToken!=='string'||!/^[0-9a-f]{48}$/.test(r.reportToken)||
      !partOK(r.key,43,43)||!['single','group'].includes(r.mode)||
@@ -191,7 +201,7 @@ export default {
           :await secureOpen(env.DB,env.PRIVATE_BLOBS,input);
       }
       if (!env.DB) return answer({error:'D1 DB 바인딩이 없습니다.'},503);
-      if (p!=='/v10/health' && p!=='/v10/create' && p!=='/v10/open' && p!=='/v10/report') return answer({error:'없는 경로입니다.'},404);
+      if (p!=='/v10/health' && p!=='/v10/create' && p!=='/v10/open' && p!=='/v10/status' && p!=='/v10/report') return answer({error:'없는 경로입니다.'},404);
       await ensureSchema(env.DB);
       if (p==='/v10/health' && request.method==='GET') return answer({ok:true,service:'secret-letter-v10',reportRetentionDays:30});
       if (request.method!=='POST') return answer({error:'없는 경로입니다.'},404);
@@ -200,6 +210,7 @@ export default {
       if(limit)return limit;
       if (p==='/v10/create') return await create(env.DB,data);
       if (p==='/v10/open') return await open(env.DB,data);
+      if (p==='/v10/status') return await statusOf(env.DB,data);
       if (p==='/v10/report') return await report(env.DB,data);
       return answer({error:'없는 경로입니다.'},404);
     } catch(e) {
