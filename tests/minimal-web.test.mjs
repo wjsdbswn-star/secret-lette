@@ -52,8 +52,9 @@ test('받은 편지 화면도 버튼을 누르기 전에는 열람을 소모하�
  assert.equal(e.open.disabled,false);assert.match(e.senderJump.href,/^secretletter:\/\/sent\//);
  e.send.onclick();e.installCancel.onclick();assert.equal(e.installDialog.open,false);assert.equal(requests.length,0);
 });
-test('아이폰에서는 안드로이드 설치파일을 내려받지 않는다',async()=>{
+test('아이폰에서는 APK 대신 홈 화면 웹앱 설치를 안내한다',async()=>{
  const {elements:e}=await screen('/','','iPhone');let prevented=false;
  e.send.onclick();e.installConfirm.onclick({preventDefault(){prevented=true}});
- assert.equal(prevented,true);assert.equal(e.installDialog.open,false);assert.match(e.notice.textContent,/아이폰 앱은 준비 중/);
+ assert.equal(prevented,true);assert.equal(e.installDialog.open,true);assert.equal(e.installConfirm.href,'#install');
+ assert.equal(e.installSteps.classList.contains('hidden'),false);assert.equal(e.installConfirm.classList.contains('hidden'),true);
 });

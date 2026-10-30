@@ -1,9 +1,11 @@
-// 비밀편지 v10 웹 열람 페이지. 브라우저에서만 AES-GCM 복호화합니다.
+import {WEB_APP_HEAD,WEB_APP_STYLE,WEB_APP_MARKUP,WEB_APP_SCRIPT} from './web-app.js';
+// 비밀편지 웹 열람 및 홈 화면 앱. 브라우저 안에서 암호화·복호화합니다.
 // #k= 복호화 열쇠는 HTTP 요청 /v10/open에 전송되지 않습니다.
 const HTML = String.raw`<!doctype html><html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="theme-color" content="#fcfcfd"><title>비밀편지</title>
+${WEB_APP_HEAD}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="비밀편지">
 <meta property="og:title" content="✉️ 비밀편지가 도착했어요">
@@ -13,8 +15,9 @@ const HTML = String.raw`<!doctype html><html lang="ko"><head>
 <meta name="twitter:description" content="앱 설치 없이 웹에서 읽는 비밀편지">
 <style>
 :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#24232c;background:#fcfcfd;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,input,a{-webkit-tap-highlight-color:transparent}button,input{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}main{min-height:100svh;display:grid;place-items:center;padding:32px 24px calc(32px + env(safe-area-inset-bottom))}.shell{width:100%;max-width:380px;text-align:center}.brand{display:inline-flex;align-items:center;gap:12px;margin-bottom:36px}.mark{width:33px;height:33px;color:#7566dc}h1{font-size:25px;letter-spacing:-1px;font-weight:600;margin:0}p{margin:0;line-height:1.65}#hint{color:#94919f;font-size:13px;margin:-20px 0 28px}#hint:empty{display:none}.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}button,.install{display:flex;justify-content:center;align-items:center;gap:10px;min-height:58px;border-radius:15px;padding:15px 18px;font-size:16px;font-weight:500;text-decoration:none;transition:background .15s,transform .15s}.primary{background:#7566dc;color:#fff;border:1px solid #7566dc}.primary:hover{background:#6656ce}.secondary{background:#fff;color:#494451;border:1px solid #e7e5ed}button:hover,.secondary:hover{transform:translateY(-1px)}button:active,.install:active{transform:translateY(0)}button:disabled{opacity:.4;cursor:default;transform:none}.icon{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.text-link{display:inline-block;background:none;border:0;min-height:44px;padding:14px 0;font-size:12px;color:#94919f;text-decoration:none}.text-link:hover{color:#6656ce}.hidden{display:none!important}#notice{font-size:13px;color:#ad445d;white-space:pre-wrap;margin-top:18px}#notice:empty{display:none}#linkPanel{margin-top:24px;text-align:left}.link-row{display:flex;gap:8px}input{width:100%;min-width:0;border:1px solid #e7e5ed;border-radius:12px;background:#fff;padding:15px 13px;color:#35313d;font-size:14px}input:focus{outline:2px solid #beb6f2;outline-offset:2px}.link-row button{min-height:50px;font-size:14px;padding:10px 15px;white-space:nowrap}.small{color:#96929e;font-size:12px}.link-help{margin-top:9px}#during{text-align:left}#time{font-size:13px;color:#91849e;font-variant-numeric:tabular-nums;margin:0 0 20px}#letter{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;font-size:18px;color:#38313e;min-height:100px;padding-bottom:22px}#close{width:100%;margin-top:24px}.report-details{margin-top:12px;color:#96929e;font-size:12px}.report-details summary{cursor:pointer;display:inline-block;padding:12px 0}.report-details p{font-size:12px;line-height:1.7;color:#847d89}.report{margin-top:12px;width:100%;font-size:13px;min-height:44px;color:#645b6c;background:#f3f1f7;border:0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}dialog{width:calc(100% - 48px);max-width:350px;border:1px solid #efedf4;border-radius:24px;padding:32px 26px 18px;color:#35303e;background:#fff;box-shadow:0 24px 80px #28213f18;text-align:center}dialog::backdrop{background:#25202e3d;backdrop-filter:blur(5px)}dialog h2{font-size:19px;font-weight:500;letter-spacing:-.5px;line-height:1.6;margin:0 0 10px}dialog p{font-size:12px;color:#96909e;margin-bottom:24px}dialog .install{width:100%}dialog button.text-link{width:100%}:focus-visible{outline:2px solid #a299dd;outline-offset:4px}@media(prefers-reduced-motion:reduce){*{transition:none!important}}@media(max-width:360px){main{padding-left:20px;padding-right:20px}.actions{gap:9px}}
-dialog .app-continue{display:block;width:100%;padding:12px 0 0;min-height:36px;font-size:12px;color:#817493;text-decoration:none}</style></head><body><main><section class="shell">
-<header class="brand"><svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3.5" y="7" width="25" height="18" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="m5 10 9 7a3.2 3.2 0 0 0 4 0l9-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><h1>비밀편지</h1></header>
+dialog .app-continue{display:block;width:100%;padding:12px 0 0;min-height:36px;font-size:12px;color:#817493;text-decoration:none}
+${WEB_APP_STYLE}</style></head><body><main><section class="shell">
+<header id="webBrand" class="brand"><svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3.5" y="7" width="25" height="18" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="m5 10 9 7a3.2 3.2 0 0 0 4 0l9-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><h1>비밀편지</h1></header>
 <p id="hint"></p>
 <div class="actions" id="actions">
 <button id="send" class="primary" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-7 18-4-7-7-4 18-7Z"/><path d="m10 14 5-5"/></svg>보내기</button>
@@ -27,22 +30,41 @@ dialog .app-continue{display:block;width:100%;padding:12px 0 0;min-height:36px;f
 <details class="report-details"><summary>도움</summary><p id="reportInfo">협박·괴롭힘 등 피해를 받았다면 편지를 닫기 전에 증거 보관을 요청할 수 있습니다. 제출된 편지와 열람키는 30일간 별도 보관됩니다. 자동으로 수사기관에 신고되지는 않습니다.</p><button id="report" class="report hidden" type="button">증거 보관 요청 (30일)</button></details></div>
 <p id="notice" role="status" aria-live="polite"></p>
 <a id="homeJump" class="text-link hidden" href="/">처음으로</a>
+${WEB_APP_MARKUP}
 </section></main>
-<dialog id="installDialog" aria-labelledby="installTitle"><h2 id="installTitle">보내려면<br>앱 설치가 필요합니다.</h2><p id="installMode">안드로이드용 비밀편지 앱</p><a id="installConfirm" class="install primary" href="https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk" rel="noopener noreferrer">설치하겠습니다</a><a id="openApp" class="app-continue" href="secretletter://compose">이미 설치했어요</a><button id="installCancel" class="text-link" type="button">닫기</button></dialog>
+<dialog id="installDialog" aria-labelledby="installTitle"><h2 id="installTitle">보내려면<br>앱 설치가 필요합니다.</h2><p id="installMode">안드로이드용 비밀편지 앱</p><a id="installConfirm" class="install primary" href="https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk" rel="noopener noreferrer">설치하겠습니다</a><div id="installSteps" class="install-steps hidden"><ol><li>이 주소를 <strong>Safari</strong>에서 여세요.</li><li><strong>공유 → 홈 화면에 추가 → 추가</strong>를 누르세요.</li><li>홈 화면의 <strong>비밀편지</strong> 아이콘을 열어 보내세요.</li></ol><p>‘웹 앱으로 열기’가 보이면 켜 주세요.<br>카카오톡 안에서는 Safari로 열어 주세요.</p><button id="webInstallCopy" class="secondary" type="button">설치 주소 복사</button><label class="sr-only" for="webInstallAddress">웹앱 설치 주소</label><input id="webInstallAddress" readonly class="hidden"></div><a id="openApp" class="app-continue" href="secretletter://compose">이미 설치했어요</a><button id="installCancel" class="text-link" type="button">닫기</button></dialog>
 <script>
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
 const idMatch=location.pathname.match(/^\/[ls]\/([A-Za-z0-9_-]{24})\/?$/);
 const id=idMatch?.[1], secret=new URLSearchParams(location.hash.slice(1)).get('k');
+${WEB_APP_SCRIPT}
 const installDialog=$('installDialog');
-$('send').onclick=()=>installDialog.showModal();
+const iosInstall=webApp.apple||new URLSearchParams(location.search||'').get('install')==='ios';
+function showInstall(){
+ if(iosInstall){
+  $('installTitle').textContent='홈 화면에 추가하면 보낼 수 있습니다.';
+  $('installMode').textContent='아이폰용 비밀편지 웹앱';$('installConfirm').href='#install';
+  $('openApp').classList.add('hidden');
+ }
+ installDialog.showModal();
+}
+$('send').onclick=()=>{
+ if(webApp.begin())return;
+ showInstall();
+};
 $('installCancel').onclick=()=>installDialog.close();
 installDialog.addEventListener('click',event=>{if(event.target===installDialog)installDialog.close();});
 $('installConfirm').onclick=event=>{
- if(/iPhone|iPad|iPod/.test(navigator.userAgent)){
-  event.preventDefault();installDialog.close();$('notice').textContent='아이폰 앱은 준비 중입니다. 받은 편지는 설치 없이 열 수 있습니다.';
+ if(iosInstall){
+  event.preventDefault();$('installSteps').classList.remove('hidden');$('installConfirm').classList.add('hidden');
  }
+};
+$('webInstallCopy').onclick=async()=>{
+ const url=location.origin+'/';
+ try{await navigator.clipboard.writeText(url);$('webInstallCopy').textContent='설치 주소를 복사했습니다.';}
+ catch{$('webInstallAddress').value=url;$('webInstallAddress').classList.remove('hidden');$('webInstallAddress').focus();$('webInstallAddress').select();}
 };
 $('linkForm').onsubmit=event=>{
  event.preventDefault();
@@ -62,6 +84,10 @@ if(!id && location.pathname!=='/'){
 if(!id){
  $('open').disabled=false;
  $('open').onclick=()=>{$('linkPanel').classList.remove('hidden');$('linkInput').focus();};
+ webApp.route();
+ if(!webApp.installed&&new URLSearchParams(location.search||'').get('install')==='ios'){
+  showInstall();$('installSteps').classList.remove('hidden');$('installConfirm').classList.add('hidden');
+ }
  return;
 }
 $('hint').textContent='열면 시간이 시작됩니다.';
@@ -74,6 +100,9 @@ if(location.pathname.startsWith('/l/')){
 
  $('senderJump').href='secretletter://sent/'+id;
  $('senderJump').classList.remove('hidden');
+ if(webApp.hasSent(id)){
+  $('senderJump').href='/?sent='+id;$('hint').textContent='내가 보낸 편지입니다.';
+ }
 }
 let watch=null,plainShown=false,reportEvidence=null;
 const base64url=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4)),ch=>ch.charCodeAt(0));
@@ -105,6 +134,7 @@ $('report').onclick=async()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden && plainShown)close();});
 window.addEventListener('pagehide',()=>{if(plainShown)close();});
 $('open').onclick=async()=>{
+ if(webApp.hasSent(id))return webApp.preview(id);
  $('open').disabled=true;$('notice').textContent='암호화된 편지를 여는 중입니다…';
  const start=performance.now();
  try {
@@ -153,7 +183,7 @@ export function landingResponse() {
     'Cache-Control':'no-store',
     'Referrer-Policy':'no-referrer',
     'X-Content-Type-Options':'nosniff',
-    'Content-Security-Policy':"default-src 'none'; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    'Content-Security-Policy':"default-src 'none'; connect-src 'self'; img-src 'self'; manifest-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   }});
 }
 

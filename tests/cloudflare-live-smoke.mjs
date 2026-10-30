@@ -28,7 +28,7 @@ let home,homeHtml='';
 for(let n=0;n<18;n++){
  home=await get('/');
  homeHtml=await home.text();
- if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt') && homeHtml.includes('id="senderJump"'))break;
+ if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt') && homeHtml.includes('id="senderJump"') && homeHtml.includes('id="webCompose"'))break;
  await new Promise(resolve=>setTimeout(resolve,5000));
 }
 assert.equal(home.status,200,'Cloudflare deployment may still be updating');
@@ -40,6 +40,18 @@ assert.match(homeHtml,/id="report"/);
 assert.match(homeHtml,/id="senderJump"/,'보낸 사람 전용 미리보기 버튼이 배포되지 않았습니다.');
 assert.doesNotMatch(homeHtml,/secretletter:\/\/open/);
 console.log('OK: live Worker serves app-free browser decryption and app install call-to-action');
+assert.match(homeHtml,/id="webCompose"/,'아이폰 홈 화면 웹앱 배포 필요');
+assert.match(homeHtml,/apple-mobile-web-app-capable/);
+const webManifest=await get('/manifest.webmanifest');
+assert.equal(webManifest.status,200);
+const appManifest=await webManifest.json();
+assert.equal(appManifest.display,'standalone');assert.equal(appManifest.start_url,'/');
+for(const [path,size] of [['/apple-touch-icon.png',180],['/icons/icon-192.png',192],['/icons/icon-512.png',512]]){
+ const icon=await get(path);assert.equal(icon.status,200);assert.equal(icon.headers.get('Content-Type'),'image/png');
+ assert.equal(new DataView(await icon.arrayBuffer()).getUint32(16),size);
+}
+const iosInstall=await get('/?install=ios');assert.equal(iosInstall.status,200);assert.match(await iosInstall.text(),/id="installSteps"/);
+console.log('OK: live iPhone install URL, standalone manifest and three PNG app icons');
 
 const single=await encryptLetter('앱 연동 자동시험 · 1회 🔒','single',30);
 let create=await post('/v10/create',{id:single.id,iv:single.iv,ciphertext:single.ciphertext,seconds:single.seconds,mode:'single'});
@@ -86,4 +98,5 @@ assert.equal(reported.payload.retentionDays,30);
 const replay=await post('/v10/report',evidence);
 assert.equal(replay.status,403);
 console.log('OK: real Cloudflare D1 optional report archived, once-only report receipt prevents replay');
-console.log('SUCCESS: Live Cloudflare v10.9 server verified. Only opt-in reports retain decryptable evidence.');
+console.log('SUCCESS: Live Cloudflare web app and encrypted single/group delivery verified. Only opt-in reports retain decryptable evidence.');
+

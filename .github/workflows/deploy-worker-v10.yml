@@ -29,8 +29,8 @@ jobs:
             echo "::error::GitHub Actions에 CLOUDFLARE_API_TOKEN (또는 CF_API_TOKEN)이 없습니다. Cloudflare 연결 승인이 필요합니다."
             exit 1
           fi
-      - name: 발신자 미리보기 및 배포 대상 보호 시험
-        run: node --test tests/sender-preview.test.mjs tests/deploy-target.test.mjs
+      - name: 웹앱 송수신·발신자 미리보기·배포 대상 보호 시험
+        run: node --test tests/web-app.test.mjs tests/minimal-web.test.mjs tests/sender-preview.test.mjs tests/deploy-target.test.mjs
       - name: 기존 Worker 배포 도구 설치
         run: npm install --prefix worker --no-audit --no-fund
       - name: 기존 D1을 확인하고 동일한 Worker만 업데이트

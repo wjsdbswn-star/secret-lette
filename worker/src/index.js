@@ -1,4 +1,5 @@
 import {landingResponse} from './landing.js';
+import {webAppAssetResponse} from './web-app-assets.js';
 import {secureReady,secureTable,secureCreate,secureOpen,secureCleanup} from './strong-expiry.js';
 // 비밀편지 v10: Cloudflare Worker + D1.
 // 개인 신원 인증 없음. URL(특히 #k=...)은 링크를 가진 사람에게 읽기 권한을 줍니다.
@@ -186,6 +187,7 @@ export default {
     if (request.method==='OPTIONS') return new Response(null,{status:204,headers:HEADERS});
     const p = new URL(request.url).pathname.replace(/\/$/,'');
     try {
+      if(request.method==='GET'){const asset=webAppAssetResponse(p);if(asset)return asset;}
       if (request.method==='GET' && (p==='' || /^\/[ls]\/[A-Za-z0-9_-]{24}$/.test(p))) return landingResponse();
       if (p==='/v11/health' && request.method==='GET') {
         return answer({ok:secureReady(env),service:'secret-letter-v11',storage:secureReady(env)?'r2-delete':'not-configured'},secureReady(env)?200:503);
@@ -232,3 +234,4 @@ export default {
     })());
   },
 };
+
