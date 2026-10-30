@@ -32,7 +32,7 @@ ${WEB_APP_STYLE}</style></head><body><main><section class="shell">
 <a id="homeJump" class="text-link hidden" href="/">처음으로</a>
 ${WEB_APP_MARKUP}
 </section></main>
-<dialog id="installDialog" aria-labelledby="installTitle"><h2 id="installTitle">보내려면<br>앱 설치가 필요합니다.</h2><p id="installMode">안드로이드용 비밀편지 앱</p><a id="installConfirm" class="install primary" href="https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk" rel="noopener noreferrer">설치하겠습니다</a><div id="installSteps" class="install-steps hidden"><ol><li>이 주소를 <strong>Safari</strong>에서 여세요.</li><li><strong>공유 → 홈 화면에 추가 → 추가</strong>를 누르세요.</li><li>홈 화면의 <strong>비밀편지</strong> 아이콘을 열어 보내세요.</li></ol><p>‘웹 앱으로 열기’가 보이면 켜 주세요.<br>카카오톡 안에서는 Safari로 열어 주세요.</p><button id="webInstallCopy" class="secondary" type="button">설치 주소 복사</button><label class="sr-only" for="webInstallAddress">웹앱 설치 주소</label><input id="webInstallAddress" readonly class="hidden"></div><a id="openApp" class="app-continue" href="secretletter://compose">이미 설치했어요</a><button id="installCancel" class="text-link" type="button">닫기</button></dialog>
+<dialog id="installDialog" aria-labelledby="installTitle"><h2 id="installTitle">보내려면<br>앱 설치가 필요합니다.</h2><p id="installMode">안드로이드용 비밀편지 앱</p><a id="installConfirm" class="install primary" href="https://github.com/wjsdbswn-star/secret-lette/releases/latest/download/secret-letter.apk" rel="noopener noreferrer">설치하겠습니다</a><a id="openApp" class="app-continue" href="secretletter://compose">이미 설치했어요</a><button id="installCancel" class="text-link" type="button">닫기</button></dialog>
 <script>
 (function(){
 'use strict';
@@ -41,31 +41,12 @@ const idMatch=location.pathname.match(/^\/[ls]\/([A-Za-z0-9_-]{24})\/?$/);
 const id=idMatch?.[1], secret=new URLSearchParams(location.hash.slice(1)).get('k');
 ${WEB_APP_SCRIPT}
 const installDialog=$('installDialog');
-const iosInstall=webApp.apple||new URLSearchParams(location.search||'').get('install')==='ios';
-function showInstall(){
- if(iosInstall){
-  $('installTitle').textContent='홈 화면에 추가하면 보낼 수 있습니다.';
-  $('installMode').textContent='아이폰용 비밀편지 웹앱';$('installConfirm').href='#install';
-  $('openApp').classList.add('hidden');
- }
- installDialog.showModal();
-}
 $('send').onclick=()=>{
  if(webApp.begin())return;
- showInstall();
+ installDialog.showModal();
 };
 $('installCancel').onclick=()=>installDialog.close();
 installDialog.addEventListener('click',event=>{if(event.target===installDialog)installDialog.close();});
-$('installConfirm').onclick=event=>{
- if(iosInstall){
-  event.preventDefault();$('installSteps').classList.remove('hidden');$('installConfirm').classList.add('hidden');
- }
-};
-$('webInstallCopy').onclick=async()=>{
- const url=location.origin+'/';
- try{await navigator.clipboard.writeText(url);$('webInstallCopy').textContent='설치 주소를 복사했습니다.';}
- catch{$('webInstallAddress').value=url;$('webInstallAddress').classList.remove('hidden');$('webInstallAddress').focus();$('webInstallAddress').select();}
-};
 $('linkForm').onsubmit=event=>{
  event.preventDefault();
  try{
@@ -85,9 +66,6 @@ if(!id){
  $('open').disabled=false;
  $('open').onclick=()=>{$('linkPanel').classList.remove('hidden');$('linkInput').focus();};
  webApp.route();
- if(!webApp.installed&&new URLSearchParams(location.search||'').get('install')==='ios'){
-  showInstall();$('installSteps').classList.remove('hidden');$('installConfirm').classList.add('hidden');
- }
  return;
 }
 $('hint').textContent='열면 시간이 시작됩니다.';

@@ -110,7 +110,7 @@ async function copyPrepared(){
  try{
   if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
   $('ready').classList.add('hidden');
-  status('sendState',mode==='group'?'링크를 복사했습니다. 여러 명에게 보내세요.':'링크를 복사했습니다.');
+  status('sendState','링크를 복사했습니다.');
  }catch{
   $('ready').classList.remove('hidden');$('shareLink').focus();$('shareLink').select();
   status('sendState','복사하지 못했습니다. 아래 링크를 길게 눌러 복사해 주세요.',true);
@@ -118,7 +118,6 @@ async function copyPrepared(){
 }
 async function sharePrepared(){
   if(!prepared){status('sendState','비밀편지 내용을 먼저 입력해 주세요.',true);return;}
-  if(mode==='group'){await copyPrepared();return;}
   try{
     if(native)await Share.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared,dialogTitle:'비밀편지 보내기'});
     else if(navigator.share)await navigator.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared});
@@ -146,7 +145,7 @@ async function sendSelected(){
     if(!api()||!webBase())throw Error('인터넷 연결 또는 비밀편지 서버를 확인해 주세요.');
     const sec=timeSeconds();
     if(sec<1||sec>MAX_SECONDS)throw Error('1초 이상 30일 23시간 59분 59초 이하로 설정해 주세요.');
-    status('sendState',mode==='group'?'링크를 만드는 중입니다…':'비밀편지를 준비하는 중입니다…');
+    status('sendState','비밀편지를 준비하는 중입니다…');
     const data=await encryptLetter($('message').value.trim(),mode,sec);
     await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
     prepared=buildShareLink(webBase(),data.id,data.key);
@@ -155,7 +154,7 @@ async function sendSelected(){
     try{rememberSent(data);$('senderPreviewButton').classList.remove('hidden');}
     catch{status('sendState','공유는 가능하지만 이 기기의 미리보기 저장은 사용할 수 없습니다.',true);}
     $('shareLink').value=prepared;
-    status('sendState',mode==='group'?'링크를 복사하는 중입니다…':'보낼 앱을 선택해 주세요.');
+    status('sendState','보낼 앱을 선택해 주세요.');
     await sharePrepared();
   }catch(e){status('sendState','보내기 실패: '+e.message,true);}
   finally{btn.disabled=false;}

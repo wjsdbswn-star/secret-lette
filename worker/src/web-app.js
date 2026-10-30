@@ -1,4 +1,4 @@
-// Online Home Screen app. Only encrypted envelopes are posted to the existing API.
+// Online browser and Home Screen app. Only encrypted envelopes reach the API.
 // No service worker caches letters, URLs, keys, or drafts.
 export const WEB_APP_HEAD = `<link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -22,7 +22,7 @@ export const WEB_APP_MARKUP = `<section id="webCompose" class="compose-panel hid
 <button id="webSenderButton" class="text-link hidden" type="button">보낸 편지 확인</button>
 </section>
 <section id="webSender" class="sender-preview hidden" aria-labelledby="webSenderTitle"><h2 id="webSenderTitle">보낸 편지 확인</h2><div id="webSenderPlain" class="sender-plain"></div><button id="webSenderClose" class="secondary" type="button">닫기</button><button id="webSenderForget" class="text-link" type="button">내 기기의 임시 기록 삭제</button><p class="small">수신자의 열람 횟수는 줄어들지 않습니다.<br>발송 후 15분 동안 이 웹앱에서 확인할 수 있습니다.</p><p id="webSenderState" class="compose-state" role="status"></p></section>
-<dialog id="webAudience" class="web-audience" aria-labelledby="webAudienceTitle"><h2 id="webAudienceTitle">누구에게 보낼까요?</h2><button id="webSingle" class="primary audience-choice" type="button">한 명</button><button id="webGroup" class="secondary audience-choice" type="button">여러 명 (링크 복사)</button><button id="webAudienceCancel" class="text-link" type="button">닫기</button></dialog>`;
+<dialog id="webAudience" class="web-audience" aria-labelledby="webAudienceTitle"><h2 id="webAudienceTitle">열람 방식</h2><button id="webSingle" class="primary audience-choice" type="button">1회 시간제한</button><button id="webGroup" class="secondary audience-choice" type="button">시간만 제한</button><button id="webAudienceCancel" class="text-link" type="button">닫기</button></dialog>`;
 
 // Inserted into the landing page's closure, after $, id, and secret are defined.
 export const WEB_APP_SCRIPT = String.raw`
@@ -30,6 +30,8 @@ const webApp=(()=>{
  const nav=typeof navigator==='undefined'?(window.navigator||{}):navigator;
  const installed=Boolean(window.matchMedia?.('(display-mode: standalone)').matches||nav.standalone);
  const apple=/iPhone|iPad|iPod/.test(nav.userAgent||'')||(/Macintosh/.test(nav.userAgent||'')&&nav.maxTouchPoints>1);
+ const query=new URLSearchParams(location.search||'');
+ const canCompose=installed||apple||query.get('app')==='1'||query.get('ios')==='1'||query.get('install')==='ios';
  const cacheKey='secretletter-sent-preview-v1',previewMs=15*60*1000;
  const timeIds=['webDays','webHours','webMinutes','webSeconds'];
  let mode='single',prepared=null,busy=false,senderId=null,senderTimer=null,previewEpoch=0;
@@ -47,7 +49,7 @@ const webApp=(()=>{
   show('webBrand',false);show('actions',false);show('linkPanel',false);show('hint',false);show('senderJump',false);show('senderGuide',false);show('homeJump',false);$('notice').textContent='';
  }
  function begin(){
-  if(!installed)return false;
+  if(!canCompose)return false;
   if(id){location.assign('/?compose=1');return true;}
   hideHome();show('webSender',false);show('webCompose',true);document.body?.classList.add('composing');$('webMessage').focus();return true;
  }
@@ -89,7 +91,7 @@ const webApp=(()=>{
   try{const all=saved().filter(x=>x.id!==data.id);all.push({...data,createdAt:Date.now()});localStorage.setItem(cacheKey,JSON.stringify(all.slice(-5)));show('webSenderButton',true);}catch{show('webSenderButton',false);}
   return prepared;
  }
- function fallback(text){show('webReady',true);show('webShare',mode==='single'&&typeof nav.share==='function');$('webShareLink').value=prepared?.url||'';say(text,true);}
+ function fallback(text){show('webReady',true);show('webShare',typeof nav.share==='function');$('webShareLink').value=prepared?.url||'';say(text,true);}
  async function share(){
   if(!prepared)return;
   try{
@@ -103,26 +105,16 @@ const webApp=(()=>{
  }
  async function copy(){
   if(!prepared)return;
-  try{await nav.clipboard.writeText(prepared.url);show('webReady',false);say(mode==='group'?'링크를 복사했습니다. 여러 명에게 보내세요.':'링크를 복사했습니다.');}
+  try{await nav.clipboard.writeText(prepared.url);show('webReady',false);say('링크를 복사했습니다.');}
   catch{fallback('링크 복사를 다시 누르거나, 아래 링크를 길게 눌러 복사해 주세요.');$('webShareLink').focus();$('webShareLink').select();}
  }
  function lock(on){busy=on;for(const name of ['composeSend','webMessage',...timeIds,'webSingle','webGroup'])$(name).disabled=on;}
  async function sendSelected(selected){
-  if(busy||!installed)return;
+  if(busy||!canCompose)return;
   $('webAudience').close();lock(true);say('비밀편지를 준비하는 중입니다…');
-  const creating=prepare(selected);
-  // Safari requires a gesture for clipboard writes. Pass the asynchronously
-  // prepared URL as a promised Blob while the choice click is still active.
-  let pendingCopy=null;
-  if(selected==='group'&&typeof ClipboardItem!=='undefined'&&nav.clipboard?.write){
-   try{pendingCopy=nav.clipboard.write([new ClipboardItem({'text/plain':creating.then(data=>new Blob([data.url],{type:'text/plain'}))})]);pendingCopy.catch(()=>{});}catch{}
-  }
   try{
-   await creating;
-   if(selected==='group'){
-    if(pendingCopy){try{await pendingCopy;show('webReady',false);say('링크를 복사했습니다. 여러 명에게 보내세요.');}catch{await copy();}}
-    else await copy();
-   }else await share();
+   await prepare(selected);
+   await share();
   }catch(e){say('보내기 실패: '+e.message,true);}
   finally{lock(false);}
  }
@@ -130,7 +122,7 @@ const webApp=(()=>{
  for(const name of timeIds)$(name).onchange=invalidate;
  $('composeHome').onclick=()=>{if(!busy)home();};
  $('composeSend').onclick=()=>{
-  if(busy||!installed)return;
+  if(busy||!canCompose)return;
   if(!$('webMessage').value.trim()){say('편지 내용을 입력해 주세요.',true);$('webMessage').focus();return;}
   if(seconds()<1||seconds()>2678399){say('읽는 시간을 1초 이상 설정해 주세요.',true);return;}
   $('webAudience').showModal();
@@ -157,11 +149,11 @@ const webApp=(()=>{
   }catch(e){if(epoch===previewEpoch)$('webSenderState').textContent='보낸 편지 확인 불가: '+e.message;}
  }
  $('webSenderButton').onclick=()=>{if(prepared)return preview(prepared.id);};
- $('webSenderClose').onclick=()=>{clearPreview();if(installed&&!id)begin();else home();};
+ $('webSenderClose').onclick=()=>{clearPreview();if(canCompose&&!id)begin();else home();};
  $('webSenderForget').onclick=()=>{if(senderId){const all=saved().filter(x=>x.id!==senderId);try{if(all.length)localStorage.setItem(cacheKey,JSON.stringify(all));else localStorage.removeItem(cacheKey);}catch{}}clearPreview();show('webSenderButton',false);$('webSenderState').textContent='내 기기의 임시 확인 기록을 삭제했습니다.';};
  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearPreview();if(!$('webSender').classList.contains('hidden'))$('webSenderState').textContent='편지 확인이 닫혔습니다.';}});
  window.addEventListener('pagehide',clearPreview);
  saved();
- return {installed,apple,begin,hasSent,preview,route(){const q=new URLSearchParams(location.search||'');if(q.has('sent'))return preview(q.get('sent'));if(installed&&q.get('compose')==='1')begin();}};
+ return {installed,apple,begin,hasSent,preview,route(){const q=new URLSearchParams(location.search||'');if(q.has('sent'))return preview(q.get('sent'));if(canCompose&&q.get('compose')==='1')begin();}};
 })();
 `;

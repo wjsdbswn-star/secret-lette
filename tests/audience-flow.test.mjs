@@ -49,24 +49,24 @@ function app(){
  });
  return {elements,shares,copies,requests,appEvents,sqlite,DB};
 }
-test('작성 후 보내기에서 대상을 선택하고, 여러 명은 같은 링크를 복사한다',async()=>{
+test('작성 후 시간만 제한을 선택하면 다른 앱의 공유창을 열고 재시도에 같은 링크를 쓴다',async()=>{
  const a=app(),e=a.elements;
  await e.goCompose.fire('click');assert.equal(e.audienceDialog.open,false);assert.equal(e.compose.classList.contains('hidden'),false);
  e.message.value='여러 명 링크 복사 시험';await e.message.fire('input');await e.send.fire('click');
  assert.equal(e.audienceDialog.open,true);assert.equal(a.requests.length,0);
  await e.chooseGroup.fire('click');assert.equal(e.audienceDialog.open,false);
- assert.equal(a.shares.length,0);assert.equal(a.copies.length,1);
+ assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create'))[0].payload.mode,'group');
  await e.send.fire('click');await e.chooseGroup.fire('click');
- assert.equal(a.copies.length,2);assert.equal(a.copies[0],a.copies[1]);
+ assert.equal(a.shares.length,2);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create')).length,1);
- const parsed=letter.parseIncomingLink(a.copies[0],'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
+ const parsed=letter.parseIncomingLink(a.shares[0].url,'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
  const open=()=>worker.fetch(new Request('https://test.example/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:parsed.id})}),{DB:a.DB});
  const first=await (await open()).json(),second=await (await open()).json();
  assert.equal(first.mode,'group');assert.equal(first.deadlineAt,second.deadlineAt);
  assert.equal(await letter.decryptLetter(second,parsed.key,parsed.id),'여러 명 링크 복사 시험');
 });
-test('한 명을 선택하면 1회 열람 편지를 만들고 공유창을 연다',async()=>{
+test('1회 시간제한을 선택하면 1회 열람 편지를 만들고 공유창을 연다',async()=>{
  const a=app(),e=a.elements;
  await e.goCompose.fire('click');e.message.value='한 명 보내기 시험';await e.message.fire('input');
  await e.send.fire('click');assert.equal(a.requests.length,0);await e.chooseSingle.fire('click');
