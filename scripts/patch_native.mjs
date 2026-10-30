@@ -9,11 +9,15 @@ const ios=resolve(base,'ios/App/App/Info.plist');
 if(existsSync(android)){
   let content=readFileSync(android,'utf8');
   if(!content.includes('android:scheme="secretletter"')){
-    const insert=`\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="secretletter" android:host="open" />\n                <data android:scheme="secretletter" android:host="sent" />\n            </intent-filter>\n`;
+    const insert=`\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="secretletter" android:host="open" />\n                <data android:scheme="secretletter" android:host="sent" />\n                <data android:scheme="secretletter" android:host="compose" />\n            </intent-filter>\n`;
     const idx=content.indexOf('</activity>');
     if(idx<0)throw Error('AndroidManifest.xml에 activity가 없습니다.');
     content=content.slice(0,idx)+insert+content.slice(idx);
     writeFileSync(android,content);console.log('Android custom scheme 등록');
+  }
+  if(!content.includes('android:host="compose"')){
+    content=content.replace(/(<data android:scheme="secretletter"[^>]*\/>)/,'$1\n                <data android:scheme="secretletter" android:host="compose" />');
+    writeFileSync(android,content);
   }
 }
 if(existsSync(ios)){

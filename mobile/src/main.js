@@ -88,18 +88,37 @@ function updateOptionsLabel(){
  for(const [unit,size] of [['일',86400],['시간',3600],['분',60],['초',1]]){
   const value=Math.floor(left/size);left%=size;if(value)parts.push(value+unit);
  }
- $('optionsLabel').textContent=(parts.join(' ')||'0초')+' · '+(mode==='single'?'한 번 열기':'여럿이 열기');
+ $('optionsLabel').textContent=parts.join(' ')||'0초';
+ $('send').textContent='보내기';
 }
 function clearReady(){updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
-for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>{
-  mode=el.dataset.mode;for(const e of document.querySelectorAll('[data-mode]'))e.setAttribute('aria-pressed',String(e===el));
-  $('modeInfo').textContent=mode==='single'?'첫 열람 요청만 성공합니다. 수신자 신원은 확인하지 않습니다.':'첫 사람이 열면 공통 소멸시간이 시작되고, 링크 소지자 모두 읽을 수 있습니다.';
-  clearReady();
+function setMode(next){
+ const changed=mode!==next;mode=next;
+ if(changed)clearReady();else updateOptionsLabel();
+}
+const audienceDialog=$('audienceDialog');
+for(const el of document.querySelectorAll('[data-send-mode]'))el.addEventListener('click',async()=>{
+ if($('send').disabled)return;
+ setMode(el.dataset.sendMode);audienceDialog.close();await sendSelected();
 });
+$('audienceCancel').addEventListener('click',()=>audienceDialog.close());
+audienceDialog.addEventListener('click',event=>{if(event.target===audienceDialog)audienceDialog.close();});
+async function copyPrepared(){
+ if(!prepared)return;
+ try{
+  if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
+  $('ready').classList.add('hidden');
+  status('sendState',mode==='group'?'링크를 복사했습니다. 여러 명에게 보내세요.':'링크를 복사했습니다.');
+ }catch{
+  $('ready').classList.remove('hidden');$('shareLink').focus();$('shareLink').select();
+  status('sendState','복사하지 못했습니다. 아래 링크를 길게 눌러 복사해 주세요.',true);
+ }
+}
 async function sharePrepared(){
   if(!prepared){status('sendState','비밀편지 내용을 먼저 입력해 주세요.',true);return;}
+  if(mode==='group'){await copyPrepared();return;}
   try{
     if(native)await Share.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared,dialogTitle:'비밀편지 보내기'});
     else if(navigator.share)await navigator.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared});
@@ -116,8 +135,9 @@ async function sharePrepared(){
     }
   }
 }
-$('send').addEventListener('click',async()=>{
+async function sendSelected(){
   const btn=$('send');
+  if(btn.disabled)return;
   btn.disabled=true;
   try{
     // 두 번째 보내기를 누를 때 새 편지를 중복 생성하지 않고 기존 링크를 다시 공유합니다.
@@ -126,7 +146,7 @@ $('send').addEventListener('click',async()=>{
     if(!api()||!webBase())throw Error('인터넷 연결 또는 비밀편지 서버를 확인해 주세요.');
     const sec=timeSeconds();
     if(sec<1||sec>MAX_SECONDS)throw Error('1초 이상 30일 23시간 59분 59초 이하로 설정해 주세요.');
-    status('sendState','비밀편지를 암호화해 공유창을 준비하는 중입니다…');
+    status('sendState',mode==='group'?'링크를 만드는 중입니다…':'비밀편지를 준비하는 중입니다…');
     const data=await encryptLetter($('message').value.trim(),mode,sec);
     await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
     prepared=buildShareLink(webBase(),data.id,data.key);
@@ -135,17 +155,18 @@ $('send').addEventListener('click',async()=>{
     try{rememberSent(data);$('senderPreviewButton').classList.remove('hidden');}
     catch{status('sendState','공유는 가능하지만 이 기기의 미리보기 저장은 사용할 수 없습니다.',true);}
     $('shareLink').value=prepared;
-    status('sendState','카카오톡·문자 등 보낼 앱을 선택해 주세요.');
+    status('sendState',mode==='group'?'링크를 복사하는 중입니다…':'보낼 앱을 선택해 주세요.');
     await sharePrepared();
   }catch(e){status('sendState','보내기 실패: '+e.message,true);}
   finally{btn.disabled=false;}
+}
+$('send').addEventListener('click',()=>{
+ if(!$('message').value.trim()){status('sendState','편지 내용을 입력해 주세요.',true);$('message').focus();return;}
+ const sec=timeSeconds();
+ if(sec<1||sec>MAX_SECONDS){status('sendState','읽는 시간을 1초 이상 설정해 주세요.',true);return;}
+ audienceDialog.showModal();
 });
-$('copy').addEventListener('click',async()=>{
-  if(!prepared)return;
-  try{if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
-    status('sendState','링크를 복사했습니다. 카카오톡에 붙여넣으세요.');}
-  catch{ $('shareLink').focus();$('shareLink').select();status('sendState','링크를 길게 눌러 복사해 주세요.',true);}
-});
+$('copy').addEventListener('click',copyPrepared);
 // 발신자 앱에서만 원본 암호문+키를 확인하며 수신용 /v10/open은 호출하지 않습니다.
 async function showSentPreview(id){
   page('compose');
@@ -260,7 +281,7 @@ if(native){
   // WebView visibilitychange만으로는 모든 기기의 앱 전환을 감지하지 못할 수 있습니다.
   // 네이티브 백그라운드 전환에서도 편지 화면을 즉시 닫습니다.
   App.addListener('appStateChange',({isActive})=>{if(!isActive){if(watch)stopReading();if(!$('sender').classList.contains('hidden'))closeSentPreview();}});
-  const incomingUrl=url=>{const senderId=parseSentDeepLink(url);if(senderId)showSentPreview(senderId);else receiveLink(url);};
+  const incomingUrl=url=>{const compose=String(url).match(/^secretletter:\/\/compose(?:\/(single|group))?\/?$/);if(compose){if(compose[1])setMode(compose[1]);page('compose');return;}const senderId=parseSentDeepLink(url);if(senderId)showSentPreview(senderId);else receiveLink(url);};
   App.addListener('appUrlOpen',e=>{if(e?.url)incomingUrl(e.url);});
   App.getLaunchUrl().then(x=>{if(x?.url)incomingUrl(x.url);}).catch(()=>{});
 }

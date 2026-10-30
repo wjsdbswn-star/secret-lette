@@ -24,12 +24,11 @@ async function screen(pathname='/',hash='',userAgent='Android'){
  });
  return {elements,requests,navigations,location};
 }
-test('첫 화면의 보내기는 설치 동의창만 열고 편지나 다운로드를 만들지 않는다',async()=>{
+test('웹 보내기는 작성 앱 설치를 안내하며 대상은 먼저 묻지 않는다',async()=>{
  const {elements:e,requests,navigations}=await screen();
- assert.equal(e.open.disabled,false);
- assert.equal(e.linkPanel.classList.contains('hidden'),true);
- e.send.onclick();
- assert.equal(e.installDialog.open,true);
+ assert.equal(e.open.disabled,false);assert.equal(e.linkPanel.classList.contains('hidden'),true);
+ e.send.onclick();assert.equal(e.installDialog.open,true);
+ assert.equal(e.openApp.href,'secretletter://compose');
  assert.match(e.installConfirm.href,/^https:\/\/github\.com\/wjsdbswn-star\/secret-lette\/releases\/latest\/download\/secret-letter\.apk$/);
  assert.equal(requests.length,0);assert.equal(navigations.length,0);
  e.installCancel.onclick();assert.equal(e.installDialog.open,false);
@@ -51,7 +50,7 @@ test('다른 사이트나 잘못된 편지 링크로 이동하지 않는다',asy
 test('받은 편지 화면도 버튼을 누르기 전에는 열람을 소모하지 않는다',async()=>{
  const {elements:e,requests}=await screen('/l/'+'A'.repeat(24),'#k='+'B'.repeat(43));
  assert.equal(e.open.disabled,false);assert.match(e.senderJump.href,/^secretletter:\/\/sent\//);
- e.send.onclick();e.installCancel.onclick();assert.equal(requests.length,0);
+ e.send.onclick();e.installCancel.onclick();assert.equal(e.installDialog.open,false);assert.equal(requests.length,0);
 });
 test('아이폰에서는 안드로이드 설치파일을 내려받지 않는다',async()=>{
  const {elements:e}=await screen('/','','iPhone');let prevented=false;
