@@ -6,8 +6,11 @@ export const WEB_APP_HEAD = `<link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="비밀편지">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">`;
 
+const RADIO_STYLE = `.read-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0;margin:0 0 14px;border:0;padding:0}.read-mode label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:#645674;cursor:pointer}.read-mode input[type=radio]{appearance:auto;accent-color:#7566dc;flex:none;width:18px;height:18px;min-height:0;margin:0;padding:0;border:0}`;
+
 export const WEB_APP_STYLE = `
 .compose-panel{text-align:left}.compose-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.compose-heading h2{font-size:21px;font-weight:600;letter-spacing:-.7px;margin:0}.compose-heading button{min-height:44px;padding:8px 0;font-size:13px;color:#92899c;background:none;border:0}.compose-panel textarea{display:block;width:100%;min-height:250px;resize:vertical;border:1px solid #e7e5ed;border-radius:18px;padding:20px 18px;font:inherit;font-size:17px;line-height:1.8;color:#38313e;background:#fff;outline:none}.compose-panel textarea:focus{border-color:#aaa0e4;box-shadow:0 0 0 3px #7566dc0c}.compose-panel textarea::placeholder{color:#aaa5b2}.compose-count{text-align:right;margin:9px 2px 20px;color:#aaa5b2;font-size:12px}.time-options{margin:0 0 22px;border-bottom:1px solid #efedf4}.time-options summary{display:flex;justify-content:space-between;padding:8px 0 17px;list-style:none;cursor:pointer;color:#8c8396;font-size:13px}.time-options summary::-webkit-details-marker{display:none}.time-options summary span{color:#645674}.time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 0 20px}.time-grid label{font-size:12px;color:#92899c;text-align:center}.time-grid select{width:100%;min-height:44px;margin-top:7px;border:1px solid #e7e5ed;border-radius:10px;padding:8px;background:#fff;color:#494451;font:inherit;font-size:16px}.compose-send{width:100%}.compose-state{font-size:13px;color:#8b7a99;white-space:pre-wrap;margin-top:18px}.compose-state:empty{display:none}.compose-panel .bad{color:#ad445d}.share-fallback{margin-top:18px}.share-fallback button{width:100%;min-height:48px;margin-top:10px}.share-fallback input{margin-top:12px;font-size:12px}.sender-preview{text-align:left}.sender-preview h2{font-size:19px;font-weight:500;margin:0 0 24px}.sender-preview .sender-plain{white-space:pre-wrap;overflow-wrap:anywhere;font-size:18px;line-height:1.9;min-height:140px;margin-bottom:22px}.sender-preview button{width:100%;margin-top:12px}.sender-preview .small{margin-top:16px}.web-audience .audience-choice{width:100%;margin-top:10px;min-height:54px;font-size:15px}.install-steps{text-align:left;line-height:1.9;font-size:14px;color:#645b70;padding:4px 0 14px}.install-steps ol{padding-left:22px;margin:0 0 15px}.install-steps p{font-size:12px;line-height:1.8;margin:0}.install-steps input{font-size:12px;margin-top:12px}#webInstallCopy{font-size:13px;min-height:44px;margin-top:12px;width:100%}#installSteps.hidden{display:none!important}body.composing main{display:block;padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom))}body.composing .shell{margin:0 auto}dialog .small{line-height:1.7}@media(max-width:360px){.compose-panel textarea{padding:16px 14px}.time-grid{gap:5px}}
+${RADIO_STYLE}
 `;
 
 const select = (id, label, max, initial=0) => `<label for="${id}">${label}<select id="${id}">${Array.from({length:max+1},(_,n)=>`<option value="${n}"${n===initial?' selected':''}>${String(n).padStart(2,'0')}</option>`).join('')}</select></label>`;
@@ -15,6 +18,7 @@ export const WEB_APP_MARKUP = `<section id="webCompose" class="compose-panel hid
 <div class="compose-heading"><h2 id="composeTitle">편지 쓰기</h2><button id="composeHome" type="button">처음으로</button></div>
 <label class="sr-only" for="webMessage">편지 내용</label><textarea id="webMessage" maxlength="1600" placeholder="전하고 싶은 말을 써보세요." spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
 <p id="webCount" class="compose-count">0 / 1600자</p>
+<fieldset id="webReadModes" class="read-mode"><legend class="sr-only">열람 방식</legend><label for="webSingle"><input id="webSingle" type="radio" name="webReadMode" value="single" checked>1회 시간제한</label><label for="webGroup"><input id="webGroup" type="radio" name="webReadMode" value="group">시간만 제한</label></fieldset>
 <details class="time-options"><summary>읽는 시간 <span id="webDuration">1분</span></summary><div class="time-grid">${select('webDays','일',30)}${select('webHours','시간',23)}${select('webMinutes','분',59,1)}${select('webSeconds','초',59)}</div></details>
 <button id="composeSend" class="primary compose-send" type="button">보내기</button>
 <p id="webSendState" class="compose-state" role="status" aria-live="polite"></p>
@@ -22,7 +26,7 @@ export const WEB_APP_MARKUP = `<section id="webCompose" class="compose-panel hid
 <button id="webSenderButton" class="text-link hidden" type="button">보낸 편지 확인</button>
 </section>
 <section id="webSender" class="sender-preview hidden" aria-labelledby="webSenderTitle"><h2 id="webSenderTitle">보낸 편지 확인</h2><div id="webSenderPlain" class="sender-plain"></div><button id="webSenderClose" class="secondary" type="button">닫기</button><button id="webSenderForget" class="text-link" type="button">내 기기의 임시 기록 삭제</button><p class="small">수신자의 열람 횟수는 줄어들지 않습니다.<br>발송 후 15분 동안 이 웹앱에서 확인할 수 있습니다.</p><p id="webSenderState" class="compose-state" role="status"></p></section>
-<dialog id="webAudience" class="web-audience" aria-labelledby="webAudienceTitle"><h2 id="webAudienceTitle">열람 방식</h2><button id="webSingle" class="primary audience-choice" type="button">1회 시간제한</button><button id="webGroup" class="secondary audience-choice" type="button">시간만 제한</button><button id="webAudienceCancel" class="text-link" type="button">닫기</button></dialog>`;
+`;
 
 // Inserted into the landing page's closure, after $, id, and secret are defined.
 export const WEB_APP_SCRIPT = String.raw`
@@ -111,7 +115,7 @@ const webApp=(()=>{
  function lock(on){busy=on;for(const name of ['composeSend','webMessage',...timeIds,'webSingle','webGroup'])$(name).disabled=on;}
  async function sendSelected(selected){
   if(busy||!canCompose)return;
-  $('webAudience').close();lock(true);say('비밀편지를 준비하는 중입니다…');
+  lock(true);say('비밀편지를 준비하는 중입니다…');
   try{
    await prepare(selected);
    await share();
@@ -121,15 +125,18 @@ const webApp=(()=>{
  $('webMessage').oninput=invalidate;
  for(const name of timeIds)$(name).onchange=invalidate;
  $('composeHome').onclick=()=>{if(!busy)home();};
- $('composeSend').onclick=()=>{
+ $('composeSend').onclick=async()=>{
   if(busy||!canCompose)return;
   if(!$('webMessage').value.trim()){say('편지 내용을 입력해 주세요.',true);$('webMessage').focus();return;}
   if(seconds()<1||seconds()>2678399){say('읽는 시간을 1초 이상 설정해 주세요.',true);return;}
-  $('webAudience').showModal();
+  await sendSelected(mode);
  };
- $('webSingle').onclick=()=>sendSelected('single');$('webGroup').onclick=()=>sendSelected('group');
- $('webAudienceCancel').onclick=()=>$('webAudience').close();
- $('webAudience').addEventListener('click',e=>{if(e.target===$('webAudience'))$('webAudience').close();});
+ function selectMode(next){
+  if(busy||mode===next)return;
+  mode=next;$('webSingle').checked=next==='single';$('webGroup').checked=next==='group';invalidate();
+ }
+ $('webSingle').onchange=()=>{if($('webSingle').checked)selectMode('single');};
+ $('webGroup').onchange=()=>{if($('webGroup').checked)selectMode('group');};
  $('webShare').onclick=share;$('webCopy').onclick=copy;
  function clearPreview(){previewEpoch++;if(senderTimer){clearInterval(senderTimer);senderTimer=null;}$('webSenderPlain').textContent='';senderId=null;}
  async function preview(value){

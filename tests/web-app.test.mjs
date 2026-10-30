@@ -15,7 +15,7 @@ async function app({installed=false,userAgent='iPhone',maxTouchPoints=0,storage=
  const html=await landingResponse().text();
  function element(attrs=''){
   const classes=new Set((attrs.match(/class="([^"]*)"/)?.[1]||'').split(/\s+/));
-  return {value:'',textContent:'',href:attrs.match(/href="([^"]*)"/)?.[1]||'',disabled:/\bdisabled\b/.test(attrs),open:false,
+  return {value:'',textContent:'',checked:/\bchecked\b/.test(attrs),href:attrs.match(/href="([^"]*)"/)?.[1]||'',disabled:/\bdisabled\b/.test(attrs),open:false,
    classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
    addEventListener(){},showModal(){this.open=true},close(){this.open=false},focus(){},select(){}};
  }
@@ -33,32 +33,34 @@ async function app({installed=false,userAgent='iPhone',maxTouchPoints=0,storage=
  return {e:elements,requests,shares,copies,storage,sqlite,document,events,timers,nav,navigations,DB};
 }
 const receive=(a,id)=>worker.fetch(new Request(origin+'/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}),{DB:a.DB});
-async function draft(a,text){a.e.send.onclick();a.e.webMessage.value=text;a.e.webMessage.oninput();a.e.composeSend.onclick();}
+async function draft(a,text){a.e.send.onclick();a.e.webMessage.value=text;a.e.webMessage.oninput();}
+function choose(a,mode){a.e.webSingle.checked=mode==='single';a.e.webGroup.checked=mode==='group';(mode==='single'?a.e.webSingle:a.e.webGroup).onchange();}
 
-test('아이폰 Safari는 홈 화면 추가 없이 작성하고 마지막 보내기에서 대상을 고른다',async()=>{
- const a=await app();await draft(a,'취소해도 남아 있는 글');assert.equal(a.e.webCompose.classList.contains('hidden'),false);assert.equal(a.e.webAudience.open,true);assert.equal(a.requests.length,0);
+test('아이폰 Safari에서 방식을 체크해도 전송하지 않고 글과 선택을 보존한다',async()=>{
+ const a=await app();await draft(a,'체크해도 남아 있는 글');assert.equal(a.e.webCompose.classList.contains('hidden'),false);assert.equal(a.e.webSingle.checked,true);assert.equal(a.e.webGroup.checked,false);assert.equal(a.requests.length,0);
  assert.equal(a.e.installDialog.open,false);
- a.e.webAudienceCancel.onclick();assert.equal(a.e.webAudience.open,false);assert.equal(a.e.webMessage.value,'취소해도 남아 있는 글');assert.equal(a.storage.size,0);
+ choose(a,'group');assert.equal(a.e.webSingle.checked,false);assert.equal(a.e.webGroup.checked,true);assert.equal(a.requests.length,0);assert.equal(a.shares.length,0);
+ choose(a,'single');assert.equal(a.e.webSingle.checked,true);assert.equal(a.e.webGroup.checked,false);assert.equal(a.e.webAudience,undefined);assert.equal(a.e.webMessage.value,'체크해도 남아 있는 글');assert.equal(a.storage.size,0);
 });
 test('아이폰 웹앱에서 한 명 공유: 원문·키는 서버에 보내지 않고 기존 앱과 호환된다',async()=>{
- const a=await app();await draft(a,'아이폰 한 명 시험 🔒');await a.e.webSingle.onclick();
+ const a=await app();await draft(a,'아이폰 한 명 시험 🔒');await a.e.composeSend.onclick();
  assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);const created=a.requests.find(r=>r.path==='/v10/create');
  assert.equal(created.payload.mode,'single');assert.deepEqual(Object.keys(created.payload).sort(),['ciphertext','id','iv','mode','seconds']);assert.ok(!JSON.stringify(created.payload).includes('아이폰 한 명 시험'));
  const incoming=parseIncomingLink(a.shares[0].url,origin+'/');const first=await receive(a,incoming.id);assert.equal(first.status,200);assert.equal(await decryptLetter(await first.json(),incoming.key,incoming.id),'아이폰 한 명 시험 🔒');assert.equal((await receive(a,incoming.id)).status,410);
  for(const value of a.storage.values())assert.ok(!value.includes('아이폰 한 명 시험'));
 });
 test('시간만 제한은 다른 앱의 공유창을 열고 같은 링크와 공통 종료 시각을 유지한다',async()=>{
- const a=await app();await draft(a,'아이폰 시간만 제한 시험');await a.e.webGroup.onclick();a.e.composeSend.onclick();await a.e.webGroup.onclick();
+ const a=await app();await draft(a,'아이폰 시간만 제한 시험');choose(a,'group');assert.equal(a.requests.length,0);await a.e.composeSend.onclick();await a.e.composeSend.onclick();
  assert.equal(a.shares.length,2);assert.equal(a.copies.length,0);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.requests.filter(r=>r.path==='/v10/create').length,1);
  const parsed=parseIncomingLink(a.shares[0].url,origin+'/');const first=await (await receive(a,parsed.id)).json(),second=await (await receive(a,parsed.id)).json();assert.equal(first.mode,'group');assert.equal(first.deadlineAt,second.deadlineAt);assert.equal(await decryptLetter(second,parsed.key,parsed.id),'아이폰 시간만 제한 시험');
 });
 test('공유 권한이나 복사가 막혀도 생성된 링크를 보존해 버튼으로 다시 시도한다',async()=>{
- const a=await app({shareFailure:{name:'NotAllowedError'}});await draft(a,'공유 권한 재시도');await a.e.webSingle.onclick();assert.equal(a.e.webReady.classList.contains('hidden'),false);assert.equal(a.e.webShare.classList.contains('hidden'),false);
+ const a=await app({shareFailure:{name:'NotAllowedError'}});await draft(a,'공유 권한 재시도');await a.e.composeSend.onclick();assert.equal(a.e.webReady.classList.contains('hidden'),false);assert.equal(a.e.webShare.classList.contains('hidden'),false);
  const url=a.e.webShareLink.value;await a.e.webShare.onclick();assert.equal(a.shares[1].url,url);assert.equal(a.requests.filter(r=>r.path==='/v10/create').length,1);
- const b=await app({shareFailure:{name:'NotAllowedError'},clipboardFailure:true});await draft(b,'복사 재시도');await b.e.webGroup.onclick();assert.equal(b.e.webShare.classList.contains('hidden'),false);await b.e.webCopy.onclick();assert.match(b.e.webShareLink.value,/^https:/);assert.equal(b.e.webReady.classList.contains('hidden'),false);b.nav.clipboard.writeText=async value=>b.copies.push(value);await b.e.webCopy.onclick();assert.equal(b.copies[0],b.e.webShareLink.value);
+ const b=await app({shareFailure:{name:'NotAllowedError'},clipboardFailure:true});await draft(b,'복사 재시도');choose(b,'group');await b.e.composeSend.onclick();assert.equal(b.e.webShare.classList.contains('hidden'),false);await b.e.webCopy.onclick();assert.match(b.e.webShareLink.value,/^https:/);assert.equal(b.e.webReady.classList.contains('hidden'),false);b.nav.clipboard.writeText=async value=>b.copies.push(value);await b.e.webCopy.onclick();assert.equal(b.copies[0],b.e.webShareLink.value);
 });
 test('웹앱 발신자 확인과 같은 브라우저에서 자기 링크 열기는 수신자 열람을 소모하지 않는다',async()=>{
- const a=await app();await draft(a,'받는 사람보다 먼저 확인');await a.e.webSingle.onclick();await a.e.webSenderButton.onclick();assert.equal(a.e.webSenderPlain.textContent,'받는 사람보다 먼저 확인');assert.equal(a.requests.some(r=>r.path==='/v10/open'),false);
+ const a=await app();await draft(a,'받는 사람보다 먼저 확인');await a.e.composeSend.onclick();await a.e.webSenderButton.onclick();assert.equal(a.e.webSenderPlain.textContent,'받는 사람보다 먼저 확인');assert.equal(a.requests.some(r=>r.path==='/v10/open'),false);
  a.document.hidden=true;for(const fn of a.events.visibilitychange)fn();assert.equal(a.e.webSenderPlain.textContent,'');
  const url=new URL(a.shares[0].url);const own=await app({installed:false,storage:a.storage,db:a.sqlite,pathname:url.pathname,hash:url.hash});await own.e.open.onclick();assert.equal(own.e.webSenderPlain.textContent,'받는 사람보다 먼저 확인');assert.equal(own.requests.some(r=>r.path==='/v10/open'),false);
  assert.equal((await receive(a,url.pathname.split('/').pop())).status,200);
@@ -69,12 +71,12 @@ test('보낸 편지 임시 기록은 15분이 지나면 정리한다',async()=>{
 test('새 아이폰 사용 링크와 이전 설치 링크 모두 아이콘 추가 없이 작성할 수 있다',async()=>{
  for(const search of ['?ios=1','?install=ios','?app=1']){
   const a=await app({installed:false,userAgent:'Desktop',search});assert.equal(a.e.installDialog.open,false);
-  await draft(a,'설치 없이 쓰는 편지');assert.equal(a.e.webCompose.classList.contains('hidden'),false);assert.equal(a.e.webAudience.open,true);assert.equal(a.requests.length,0);
+  await draft(a,'설치 없이 쓰는 편지');choose(a,'group');assert.equal(a.e.webCompose.classList.contains('hidden'),false);assert.equal(a.e.webAudience,undefined);assert.equal(a.requests.length,0);
  }
 });
 test('아이패드와 기존 홈 화면 앱도 작성·보내기를 유지한다',async()=>{
  for(const options of [{userAgent:'iPad'},{userAgent:'Macintosh',maxTouchPoints:5},{userAgent:'Desktop',installed:true}]){
-  const a=await app(options);await draft(a,'아이패드 및 기존 앱 시험');await a.e.webSingle.onclick();assert.equal(a.shares.length,1);assert.equal(a.e.installDialog.open,false);
+  const a=await app(options);await draft(a,'아이패드 및 기존 앱 시험');await a.e.composeSend.onclick();assert.equal(a.shares.length,1);assert.equal(a.e.installDialog.open,false);
  }
 });
 test('설치 메타데이터와 PNG 아이콘은 DB 없이 제공하며 편지를 캐시하지 않는다',async()=>{

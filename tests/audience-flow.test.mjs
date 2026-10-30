@@ -19,7 +19,7 @@ function app(){
   const classes=new Set((attrs.match(/class="([^"]*)"/)?.[1]||'').split(/\s+/));
   const listeners={},dataset={};
   for(const m of attrs.matchAll(/data-([\w-]+)="([^"]*)"/g))dataset[m[1].replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=m[2];
-  return {dataset,value:'',textContent:'',disabled:/\bdisabled\b/.test(attrs),open:false,style:{},
+  return {dataset,value:'',textContent:'',checked:/\bchecked\b/.test(attrs),disabled:/\bdisabled\b/.test(attrs),open:false,style:{},
    addEventListener(type,handler){(listeners[type]??=[]).push(handler)},
    async fire(type){for(const handler of listeners[type]||[])await handler({target:this})},
    showModal(){this.open=true},close(){this.open=false},focus(){},select(){},append(){},setAttribute(){},
@@ -49,15 +49,15 @@ function app(){
  });
  return {elements,shares,copies,requests,appEvents,sqlite,DB};
 }
-test('작성 후 시간만 제한을 선택하면 다른 앱의 공유창을 열고 재시도에 같은 링크를 쓴다',async()=>{
+test('시간만 제한 체크 후 보내기를 누르면 공유창을 열고 같은 링크를 재사용한다',async()=>{
  const a=app(),e=a.elements;
- await e.goCompose.fire('click');assert.equal(e.audienceDialog.open,false);assert.equal(e.compose.classList.contains('hidden'),false);
- e.message.value='여러 명 링크 복사 시험';await e.message.fire('input');await e.send.fire('click');
- assert.equal(e.audienceDialog.open,true);assert.equal(a.requests.length,0);
- await e.chooseGroup.fire('click');assert.equal(e.audienceDialog.open,false);
+ await e.goCompose.fire('click');assert.equal(e.audienceDialog,undefined);assert.equal(e.compose.classList.contains('hidden'),false);
+ e.message.value='여러 명 링크 복사 시험';await e.message.fire('input');e.chooseGroup.checked=true;await e.chooseGroup.fire('change');
+ assert.equal(e.chooseSingle.checked,false);assert.equal(a.requests.length,0);assert.equal(a.shares.length,0);
+ await e.send.fire('click');
  assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create'))[0].payload.mode,'group');
- await e.send.fire('click');await e.chooseGroup.fire('click');
+ await e.send.fire('click');
  assert.equal(a.shares.length,2);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create')).length,1);
  const parsed=letter.parseIncomingLink(a.shares[0].url,'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
@@ -66,20 +66,20 @@ test('작성 후 시간만 제한을 선택하면 다른 앱의 공유창을 열
  assert.equal(first.mode,'group');assert.equal(first.deadlineAt,second.deadlineAt);
  assert.equal(await letter.decryptLetter(second,parsed.key,parsed.id),'여러 명 링크 복사 시험');
 });
-test('1회 시간제한을 선택하면 1회 열람 편지를 만들고 공유창을 연다',async()=>{
+test('1회 시간제한 기본 체크에서 보내기를 눌러야 편지를 만들고 공유창을 연다',async()=>{
  const a=app(),e=a.elements;
  await e.goCompose.fire('click');e.message.value='한 명 보내기 시험';await e.message.fire('input');
- await e.send.fire('click');assert.equal(a.requests.length,0);await e.chooseSingle.fire('click');
+ assert.equal(e.chooseSingle.checked,true);assert.equal(a.requests.length,0);await e.send.fire('click');
  assert.equal(e.send.textContent,'보내기');assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
  const create=a.requests.find(r=>r.url.endsWith('/create'));assert.equal(create.payload.mode,'single');
  assert.equal(a.sqlite.prepare('SELECT mode FROM letters_v10 WHERE id=?').get(create.payload.id).mode,'single');
 });
-test('앱 이어 열기는 작성 화면으로 이동하며, 최종 보내기 전에는 대상을 묻지 않는다',()=>{
+test('앱 이어 열기는 작성 화면에서 체크 항목과 보내기를 제공한다',()=>{
  const a=app();a.appEvents.appUrlOpen({url:'secretletter://compose'});
- assert.equal(a.elements.compose.classList.contains('hidden'),false);assert.equal(a.elements.audienceDialog.open,false);assert.equal(a.requests.length,0);
+ assert.equal(a.elements.compose.classList.contains('hidden'),false);assert.equal(a.elements.audienceDialog,undefined);assert.equal(a.elements.chooseSingle.checked,true);assert.equal(a.requests.length,0);
 });
-test('대상 선택을 닫으면 글을 보존하며 서버에 편지를 만들지 않는다',async()=>{
+test('열람 방식을 체크하는 것만으로 공유하지 않고 글을 보존한다',async()=>{
  const a=app(),e=a.elements;await e.goCompose.fire('click');
- e.message.value='아직 보내지 않은 글';await e.message.fire('input');await e.send.fire('click');await e.audienceCancel.fire('click');
- assert.equal(e.audienceDialog.open,false);assert.equal(e.message.value,'아직 보내지 않은 글');assert.equal(a.requests.length,0);
+ e.message.value='아직 보내지 않은 글';await e.message.fire('input');e.chooseGroup.checked=true;await e.chooseGroup.fire('change');
+ assert.equal(e.chooseSingle.checked,false);assert.equal(e.message.value,'아직 보내지 않은 글');assert.equal(a.requests.length,0);assert.equal(a.shares.length,0);
 });

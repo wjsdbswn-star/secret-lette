@@ -96,15 +96,13 @@ $('message').addEventListener('input',()=>{$('count').textContent=$('message').v
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
 function setMode(next){
  const changed=mode!==next;mode=next;
+ $('chooseSingle').checked=next==='single';$('chooseGroup').checked=next==='group';
  if(changed)clearReady();else updateOptionsLabel();
 }
-const audienceDialog=$('audienceDialog');
-for(const el of document.querySelectorAll('[data-send-mode]'))el.addEventListener('click',async()=>{
- if($('send').disabled)return;
- setMode(el.dataset.sendMode);audienceDialog.close();await sendSelected();
+for(const el of document.querySelectorAll('[data-send-mode]'))el.addEventListener('change',()=>{
+ if($('send').disabled||!el.checked)return;
+ setMode(el.dataset.sendMode);
 });
-$('audienceCancel').addEventListener('click',()=>audienceDialog.close());
-audienceDialog.addEventListener('click',event=>{if(event.target===audienceDialog)audienceDialog.close();});
 async function copyPrepared(){
  if(!prepared)return;
  try{
@@ -138,6 +136,7 @@ async function sendSelected(){
   const btn=$('send');
   if(btn.disabled)return;
   btn.disabled=true;
+  for(const id of ['message','days','hours','minutes','seconds','chooseSingle','chooseGroup'])$(id).disabled=true;
   try{
     // 두 번째 보내기를 누를 때 새 편지를 중복 생성하지 않고 기존 링크를 다시 공유합니다.
     if(prepared){await sharePrepared();return;}
@@ -157,13 +156,13 @@ async function sendSelected(){
     status('sendState','보낼 앱을 선택해 주세요.');
     await sharePrepared();
   }catch(e){status('sendState','보내기 실패: '+e.message,true);}
-  finally{btn.disabled=false;}
+  finally{btn.disabled=false;for(const id of ['message','days','hours','minutes','seconds','chooseSingle','chooseGroup'])$(id).disabled=false;}
 }
-$('send').addEventListener('click',()=>{
+$('send').addEventListener('click',async()=>{
  if(!$('message').value.trim()){status('sendState','편지 내용을 입력해 주세요.',true);$('message').focus();return;}
  const sec=timeSeconds();
  if(sec<1||sec>MAX_SECONDS){status('sendState','읽는 시간을 1초 이상 설정해 주세요.',true);return;}
- audienceDialog.showModal();
+ await sendSelected();
 });
 $('copy').addEventListener('click',copyPrepared);
 // 발신자 앱에서만 원본 암호문+키를 확인하며 수신용 /v10/open은 호출하지 않습니다.

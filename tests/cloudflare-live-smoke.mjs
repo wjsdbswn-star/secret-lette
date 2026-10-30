@@ -28,7 +28,7 @@ let home,homeHtml='';
 for(let n=0;n<18;n++){
  home=await get('/');
  homeHtml=await home.text();
- if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt') && homeHtml.includes('id="senderJump"') && homeHtml.includes('canCompose=installed||apple') && homeHtml.includes('1회 시간제한'))break;
+ if(home.status===200 && homeHtml.includes('앱 설치 없이 웹에서 읽을 수 있습니다.') && homeHtml.includes('crypto.subtle.decrypt') && homeHtml.includes('id="senderJump"') && homeHtml.includes('canCompose=installed||apple') && homeHtml.includes('id="webReadModes"'))break;
  await new Promise(resolve=>setTimeout(resolve,5000));
 }
 assert.equal(home.status,200,'Cloudflare deployment may still be updating');
@@ -52,7 +52,7 @@ for(const [path,size] of [['/apple-touch-icon.png',180],['/icons/icon-192.png',1
 }
 for(const path of ['/?ios=1','/?install=ios','/?app=1']){
  const iosPage=await get(path);assert.equal(iosPage.status,200);const html=await iosPage.text();
- assert.match(html,/canCompose=installed\|\|apple/);assert.match(html,/1회 시간제한/);assert.match(html,/시간만 제한/);assert.doesNotMatch(html,/id="installSteps"|여러 명 \(링크 복사\)/);
+ assert.match(html,/canCompose=installed\|\|apple/);assert.match(html,/id="webReadModes"/);assert.match(html,/type="radio" name="webReadMode"/);assert.match(html,/1회 시간제한/);assert.match(html,/시간만 제한/);assert.doesNotMatch(html,/id="webAudience"|id="installSteps"|여러 명 \(링크 복사\)/);
 }
 console.log('OK: live iPhone browser URL and old link support writing without Home Screen installation; optional app manifest and icons retained');
 

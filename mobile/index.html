@@ -8,6 +8,7 @@
 <section id="compose" class="panel hidden">
  <label class="sr-only" for="message">편지 내용</label>
  <textarea id="message" maxlength="1600" placeholder="무슨 말을 전할까요?"></textarea><div id="count">0 / 1600자</div>
+ <fieldset id="readModes" class="read-mode"><legend class="sr-only">열람 방식</legend><label for="chooseSingle"><input id="chooseSingle" type="radio" name="readMode" value="single" data-send-mode="single" checked>1회 시간제한</label><label for="chooseGroup"><input id="chooseGroup" type="radio" name="readMode" value="group" data-send-mode="group">시간만 제한</label></fieldset>
  <details id="sendOptions" class="send-options"><summary><span id="optionsLabel">1분</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="options-content"><div class="label">열면 사라지는 시간</div>
  <div class="time"><div><label for="days">일</label><select id="days"></select></div>
  <div><label for="hours">시</label><select id="hours"></select></div>
@@ -46,6 +47,6 @@
 </details>
 <section id="offlinePanel" class="panel hidden"><h2>먼저 앱 작동 확인</h2><p class="small">서버 연결 전에도 휴대전화의 암호화 기능을 시험할 수 있습니다. 서버에 글을 보내지 않습니다.</p><button id="offlineDemo" class="secondary" type="button" style="width:100%">🔒 오프라인 암호화 시험</button><p id="offlineState" class="status" role="status"></p></section>
 <details class="hidden"><summary>시험판 보안 안내</summary><p class="small">서버에는 암호문과 만료 정보가 저장됩니다. 링크를 가진 누구나 열람을 시도할 수 있습니다. 1회 열람은 처음 요청을 보낸 사람에게 적용되며 수신자 확인은 하지 않습니다. 캡처·복사·기기 악성코드·외부 메신저에 남은 기록을 삭제할 수 없습니다. 실제 민감한 내용을 보내지 마세요.</p></details>
-<div class="version">v10.12</div>
-</main><dialog id="audienceDialog" aria-labelledby="audienceTitle"><h2 id="audienceTitle">열람 방식</h2><button id="chooseSingle" class="primary" data-send-mode="single" type="button">1회 시간제한</button><button id="chooseGroup" class="secondary" data-send-mode="group" type="button">시간만 제한</button><button id="audienceCancel" class="text-button" type="button">닫기</button></dialog><script type="module" src="/src/main.js"></script></body></html>
+<div class="version">v10.13</div>
+</main><script type="module" src="/src/main.js"></script></body></html>
 
