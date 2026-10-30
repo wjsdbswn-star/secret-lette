@@ -19,12 +19,14 @@ function makeD1(){
  return DB;
 }
 function fakeDocument(){
- const ids=['hint','open','during','letter','close','notice','time','report','senderGuide','senderJump'];
- const elements=Object.fromEntries(ids.map(id=>{
-  const classes=new Set(id==='during'?['hidden']:[]);
-  return [id,{textContent:'',disabled:id==='open',style:{},href:'',classList:{add(x){classes.add(x)},remove(x){classes.delete(x)},contains(x){return classes.has(x)}}}];
- }));
- return {elements,document:{hidden:false,getElementById(id){return elements[id]},addEventListener(){}}};
+ const elements={};
+ const element=id=>{
+  const classes=new Set(['during','linkPanel','report','senderJump'].includes(id)?['hidden']:[]);
+  return {textContent:'',value:'',disabled:id==='open',style:{},href:'',open:false,
+   addEventListener(){},focus(){this.focused=true},showModal(){this.open=true},close(){this.open=false},
+   classList:{add(x){classes.add(x)},remove(x){classes.delete(x)},contains(x){return classes.has(x)}}};
+ };
+ return {elements,document:{hidden:false,getElementById(id){return elements[id]??=element(id)},addEventListener(){}}};
 }
 test('편지를 받으면 앱 없이 브라우저에서 복호화하고 최초 열람만 허용',async()=>{
  const DB=makeD1();
@@ -137,3 +139,4 @@ test('같은 접속 환경의 과도한 생성 요청은 자동 제한한다',as
  for(let n=0;n<61;n++)result=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json','CF-Connecting-IP':'203.0.113.88'},body:'{}'}),{DB});
  assert.equal(result.status,429);
 });
+

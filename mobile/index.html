@@ -1,46 +1,46 @@
 <!doctype html><html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f7f8f6">
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#fcfcfd">
 <title>비밀편지</title>
-</head><body><main>
-<header><span style="font-size:30px" aria-hidden="true">✉️</span><div><h1>비밀편지</h1><div class="muted">앱에서 쓰고, 웹에서 읽어요.</div></div></header>
-<nav class="hidden" aria-hidden="true"><button id="goCompose" class="on" type="button">편지 쓰기</button><button id="goReader" type="button">편지 읽기</button></nav>
-<section id="compose" class="panel">
- <div class="banner">받는 사람은 앱 설치 없이 웹에서 읽습니다. 편지 내용은 휴대전화에서 암호화됩니다.</div>
- <label class="first" for="message">편지 내용</label>
- <textarea id="message" maxlength="1600" placeholder="비밀편지를 적어 주세요."></textarea><div id="count">0 / 1600자</div>
- <div class="label">열람 후 소멸 시간</div>
+</head><body class="is-home"><main>
+<header><button id="homeButton" class="back hidden" type="button" aria-label="처음으로"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3.5" y="7" width="25" height="18" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="m5 10 9 7a3.2 3.2 0 0 0 4 0l9-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><h1>비밀편지</h1></header>
+<section id="home" class="home"><button id="goCompose" class="primary" type="button">보내기</button><button id="goReader" class="secondary" type="button">열기</button></section>
+<section id="compose" class="panel hidden">
+ <label class="sr-only" for="message">편지 내용</label>
+ <textarea id="message" maxlength="1600" placeholder="무슨 말을 전할까요?"></textarea><div id="count">0 / 1600자</div>
+ <details id="sendOptions" class="send-options"><summary><span id="optionsLabel">1분 · 한 번 열기</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="options-content"><div class="label">열면 사라지는 시간</div>
  <div class="time"><div><label for="days">일</label><select id="days"></select></div>
  <div><label for="hours">시</label><select id="hours"></select></div>
  <div><label for="minutes">분</label><select id="minutes"></select></div>
  <div><label for="seconds">초</label><select id="seconds"></select></div></div>
  <div class="label">열람 방식</div><div class="choices" role="group" aria-label="열람 방식">
- <button class="choice" data-mode="single" type="button" aria-pressed="true">👤 한 명만 보기</button>
- <button class="choice" data-mode="group" type="button" aria-pressed="false">👥 여럿이 보기</button></div>
+ <button class="choice" data-mode="single" type="button" aria-pressed="true">한 번 열기</button>
+ <button class="choice" data-mode="group" type="button" aria-pressed="false">여럿이 열기</button></div>
  <p class="note" id="modeInfo">첫 열람 요청만 성공합니다. 특정 수신자의 신원을 확인하는 기능은 아닙니다.</p>
  <p class="safety-note">⚠️ 받은 사람이 피해 증거 보관을 요청하면 제출된 편지와 열람키가 30일간 별도 보관될 수 있습니다. 협박·괴롭힘 등 위법행위에는 법적 책임이 따를 수 있습니다.</p>
- <button id="send" class="primary" type="button">↗ 비밀편지 보내기</button>
- <p class="note">보내기를 누르면 카카오톡·문자 등 공유 앱 선택창이 열립니다.</p>
+ </div></details>
+ <button id="send" class="primary" type="button">보내기</button>
+
  <p id="sendState" class="status" role="status"></p>
- <button id="senderPreviewButton" class="secondary hidden" type="button" style="width:100%">내가 보낸 편지 확인하기 (수신자 열람 유지)</button>
+ <button id="senderPreviewButton" class="text-button hidden" type="button" style="width:100%">보낸 편지 확인</button>
  <div id="ready" class="fallback hidden">
  <p class="small">공유 앱 선택창이 열리지 않았으면 아래 링크를 복사해 보내거나, 위의 「비밀편지 보내기」를 다시 누르세요.</p>
  <button id="copy" class="secondary" type="button" style="width:100%">링크 복사</button>
  <input id="shareLink" readonly aria-label="비밀편지 링크" style="margin-top:9px;font-size:12px">
  </div>
 </section>
-<section id="sender" class="panel hidden"><h2>내가 보낸 편지</h2><p class="note">내 휴대전화에 잠시 저장된 암호화 편지를 확인합니다. 받는 사람의 1회 열람에는 영향을 주지 않습니다.</p><div id="senderPlain" class="letter" style="margin:15px 0"></div><p class="small">이 기기의 확인용 기록은 발송 후 최대 15분간 보관되며, 앱 실행/조회 시 기한이 지난 기록을 정리합니다.</p><button id="senderClose" class="primary" type="button">확인 완료</button><button id="senderDelete" class="secondary" type="button" style="width:100%;margin-top:9px">내 기기 확인 기록 삭제</button></section>
+<section id="sender" class="panel hidden"><h2>보낸 편지</h2><p class="note">상대방의 열람 횟수는 줄지 않습니다.</p><div id="senderPlain" class="letter"></div><button id="senderClose" class="primary" type="button">닫기</button><details class="quiet-details"><summary>보관 안내</summary><p class="small">이 기기의 확인용 기록은 발송 후 최대 15분간 보관되며, 앱 실행/조회 시 기한이 지난 기록을 정리합니다.</p><button id="senderDelete" class="text-button" type="button">내 기기 확인 기록 삭제</button></details></section>
 <section id="reader" class="panel hidden">
- <div id="before"><h2>📩 비밀편지</h2><p id="readerHint" class="muted">카카오톡 등에서 받은 링크를 눌러 주세요.</p>
- <label for="pasteLink">앱이 자동으로 열리지 않는 경우</label><input id="pasteLink" type="url" placeholder="카카오톡에서 링크 복사 → 여기에 붙여넣기" autocomplete="off" autocapitalize="off" spellcheck="false">
- <button id="checkLink" type="button" class="secondary" style="width:100%;margin-top:8px;margin-bottom:13px">복사한 비밀편지 링크 확인</button>
- <button id="open" class="primary" disabled type="button">편지 열기</button></div>
+ <div id="before"><p id="readerHint" class="muted">받은 링크를 붙여넣으세요.</p>
+ <label class="sr-only" for="pasteLink">받은 편지 링크</label><input id="pasteLink" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+ <button id="checkLink" type="button" class="secondary hidden" style="width:100%;margin-top:8px;margin-bottom:13px">복사한 비밀편지 링크 확인</button>
+ <button id="open" class="primary" disabled type="button">열기</button></div>
  <div id="during" class="hidden"><div class="timer" id="timer">00:00:00</div><div class="meter"><div id="meterFill"></div></div>
  <div id="plain" class="letter" style="margin-top:17px"></div><p class="small">다른 화면으로 이동하면 표시된 편지는 닫힙니다.</p>
- <button id="close" class="secondary" style="width:100%;margin-top:15px" type="button">지금 닫기</button></div>
- <div id="after" class="hidden"><div class="gone">🔒 편지가 닫혔습니다</div><p class="muted">만료되었거나 열람이 완료된 편지는 다시 열 수 없을 수 있습니다.</p></div>
+ <button id="close" class="secondary" style="width:100%;margin-top:15px" type="button">닫기</button></div>
+ <div id="after" class="hidden"><div class="gone">편지가 닫혔습니다.</div><p class="muted">만료되었거나 열람이 완료된 편지는 다시 열 수 없을 수 있습니다.</p></div>
  <p id="readerState" class="status" role="status"></p>
- <button id="reply" class="red" type="button">↩ 새 편지 쓰기</button>
+ <button id="reply" class="text-button" type="button">보내기</button>
 </section>
 <details id="settingPanel" class="hidden"><summary>관리자 설정 · Cloudflare 서비스 주소</summary>
  <label for="apiInput">v10 Worker 주소</label><input id="apiInput" placeholder="https://xxxxx.workers.dev" autocapitalize="off" spellcheck="false">
@@ -50,5 +50,6 @@
 </details>
 <section id="offlinePanel" class="panel hidden"><h2>먼저 앱 작동 확인</h2><p class="small">서버 연결 전에도 휴대전화의 암호화 기능을 시험할 수 있습니다. 서버에 글을 보내지 않습니다.</p><button id="offlineDemo" class="secondary" type="button" style="width:100%">🔒 오프라인 암호화 시험</button><p id="offlineState" class="status" role="status"></p></section>
 <details class="hidden"><summary>시험판 보안 안내</summary><p class="small">서버에는 암호문과 만료 정보가 저장됩니다. 링크를 가진 누구나 열람을 시도할 수 있습니다. 1회 열람은 처음 요청을 보낸 사람에게 적용되며 수신자 확인은 하지 않습니다. 캡처·복사·기기 악성코드·외부 메신저에 남은 기록을 삭제할 수 없습니다. 실제 민감한 내용을 보내지 마세요.</p></details>
-<div class="version">비밀편지 · 안드로이드·아이폰 1차 앱 시제품 (v10.9 · 웹에서 읽기, 앱에서 보내기)</div>
+<div class="version">v10.10</div>
 </main><script type="module" src="/src/main.js"></script></body></html>
+

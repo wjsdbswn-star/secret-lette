@@ -57,7 +57,7 @@ function ensureServiceConfig(){
 }
 
 async function request(endpoint,payload=null) {
-  const root=api();if(!root)throw Error('아래 관리자 설정에서 Cloudflare 서비스 주소를 연결해 주세요.');
+  const root=api();if(!root)throw Error('서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.');
   const ctl=new AbortController(), timer=setTimeout(()=>ctl.abort(),12000);
   try {
     const response=await fetch(root+'/v10/'+endpoint,{method:payload?'POST':'GET',
@@ -71,6 +71,10 @@ async function request(endpoint,payload=null) {
 }
 function page(name){
   if(name!=='reader' && watch)stopReading(true);
+  if(name!=='sender'){$('senderPlain').textContent='';$('sender').dataset.id='';}
+  $('home').classList.toggle('hidden',name!=='home');
+  $('homeButton').classList.toggle('hidden',name==='home');
+  document.body.classList.toggle('is-home',name==='home');
   $('compose').classList.toggle('hidden',name!=='compose');$('reader').classList.toggle('hidden',name!=='reader');$('sender').classList.toggle('hidden',name!=='sender');
   $('goCompose').classList.toggle('on',name==='compose');$('goReader').classList.toggle('on',name==='reader');
 }
@@ -78,7 +82,15 @@ function timeSeconds(){return ['days','hours','minutes','seconds'].reduce((v,id,
 function setupTimes(){for(const [id,max] of [['days',30],['hours',23],['minutes',59],['seconds',59]]){
   for(let n=0;n<=max;n++){const o=document.createElement('option');o.value=n;o.textContent=String(n).padStart(2,'0');$(id).append(o);}
 } $('minutes').value='1';}
-function clearReady(){prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
+function updateOptionsLabel(){
+ const total=timeSeconds();let left=total;
+ const parts=[];
+ for(const [unit,size] of [['일',86400],['시간',3600],['분',60],['초',1]]){
+  const value=Math.floor(left/size);left%=size;if(value)parts.push(value+unit);
+ }
+ $('optionsLabel').textContent=(parts.join(' ')||'0초')+' · '+(mode==='single'?'한 번 열기':'여럿이 열기');
+}
+function clearReady(){updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
 for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>{
@@ -214,8 +226,13 @@ $('open').addEventListener('click',async()=>{
 });
 $('close').addEventListener('click',()=>stopReading());
 $('reply').addEventListener('click',()=>page('compose'));
-$('goCompose').addEventListener('click',()=>page('compose'));
-$('goReader').addEventListener('click',()=>page('reader'));
+$('homeButton').addEventListener('click',()=>page('home'));
+$('goCompose').addEventListener('click',()=>{page('compose');$('message').focus();});
+$('goReader').addEventListener('click',()=>{page('reader');$('pasteLink').focus();});
+$('pasteLink').addEventListener('input',()=>{
+ incoming=null;$('open').disabled=true;
+ try{incoming=parseIncomingLink($('pasteLink').value.trim(),webBase());$('open').disabled=false;status('readerState','');}catch{}
+});
 $('checkLink').addEventListener('click',()=>{
   const raw=$('pasteLink').value.trim();
   if(!raw){status('readerState','카카오톡에서 복사한 비밀편지 링크를 붙여넣으세요.',true);return;}
@@ -236,7 +253,7 @@ $('offlineDemo').addEventListener('click',async()=>{
   }catch(e){status('offlineState','오프라인 암호화 시험 실패: '+e.message,true);}
   finally{button.disabled=false;}
 });
-setupTimes();page('compose');
+setupTimes();updateOptionsLabel();page('home');
 ensureServiceConfig();
 // App Links / Universal Links / custom scheme (네이티브 설정은 README 참고).
 if(native){
@@ -248,3 +265,4 @@ if(native){
   App.getLaunchUrl().then(x=>{if(x?.url)incomingUrl(x.url);}).catch(()=>{});
 }
 // 브라우저에서는 개발 서버에서만 기능 시험. 공개된 웹 수신 페이지에는 이 코드를 배포하지 않습니다.
+

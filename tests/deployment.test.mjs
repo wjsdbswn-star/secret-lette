@@ -49,7 +49,7 @@ test('GitHub APK 빌드 직전에 자동 테스트를 수행한다',()=>{
 
 test('보내기 버튼 한 번으로 암호화 등록 후 공유 창을 연다',()=>{
  const html=read('../mobile/index.html'),script=read('../mobile/src/main.js');
- assert.match(html,/id="send"[^>]*>↗ 비밀편지 보내기<\/button>/);
+ assert.match(html,/id="send"[^>]*>보내기<\/button>/);
  assert.match(script,/await request\('create',[\s\S]*?await sharePrepared\(\)/);
  assert.match(script,/async function sharePrepared\(\)/);
  assert.match(script,/if\(!api\(\)\|\|!webBase\(\)\)/);
@@ -69,3 +69,4 @@ test('기존 Cloudflare Worker 전용 업데이트 도우미는 신규 자원을
  assert.match(result,/DRY RUN OK/);
  assert.match(result,/신규 자원 생성 없음/);
 });
+
