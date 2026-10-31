@@ -60,6 +60,7 @@ test('아이폰 Safari에서 방식을 체크해도 전송하지 않고 글과 �
 });
 test('아이폰 웹앱에서 한 명 공유: 원문·키는 서버에 보내지 않고 기존 앱과 호환된다',async()=>{
  const a=await app();await draft(a,'아이폰 한 명 시험 🔒');await a.e.composeSend.onclick();
+ assert.equal(a.shares[0].text,undefined);assert.doesNotMatch(a.shares[0].url,/#[\p{L}\p{N}_]+/u);
  assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);const created=a.requests.find(r=>r.path==='/v10/create');
  assert.equal(created.payload.mode,'single');assert.deepEqual(Object.keys(created.payload).sort(),['ciphertext','id','iv','mode','seconds']);assert.ok(!JSON.stringify(created.payload).includes('아이폰 한 명 시험'));
  const incoming=parseIncomingLink(a.shares[0].url,origin+'/');const first=await receive(a,incoming.id);assert.equal(first.status,200);assert.equal(await decryptLetter(await first.json(),incoming.key,incoming.id),'아이폰 한 명 시험 🔒');assert.equal((await receive(a,incoming.id)).status,410);

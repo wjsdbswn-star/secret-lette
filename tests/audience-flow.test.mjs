@@ -56,6 +56,7 @@ test('시간만 제한 체크 후 보내기를 누르면 공유창을 열고 같
  assert.equal(e.chooseSingle.checked,false);assert.equal(a.requests.length,0);assert.equal(a.shares.length,0);
  await e.send.fire('click');
  assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
+ assert.equal(a.shares[0].text,undefined);assert.doesNotMatch(a.shares[0].url,/#[\p{L}\p{N}_]+/u);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create'))[0].payload.mode,'group');
  assert.equal(e.send.textContent,'보내기');assert.equal(e.message.value,'');assert.equal(e.chooseGroup.checked,true);await e.reshare.fire('click');
  assert.equal(a.shares.length,2);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.copies.length,0);

@@ -26,3 +26,12 @@ test('비밀편지 URL은 키 없는 경우 거절',async()=>{
  assert.throws(()=>parseIncomingLink(web+'l/'+a.id,web));
  assert.throws(()=>parseIncomingLink('https://evil.example/l/'+a.id+'#k='+a.key,web));
 });
+test('새 공유 링크는 #k 해시태그를 만들지 않으며 이전 수신 방식과 호환된다',async()=>{
+ const a=await encryptLetter('해시태그로 나뉘지 않는 링크','single',60);
+ const link=buildShareLink(web,a.id,a.key),url=new URL(link);
+ assert.equal(url.search,'');assert.equal(url.pathname,'/l/'+a.id);assert.equal(url.hash,'#?k='+a.key);
+ assert.doesNotMatch(link,/#[\p{L}\p{N}_]+/u);
+ assert.equal(new URLSearchParams(url.hash.slice(1)).get('k'),a.key,'이전 버전의 수신 파서도 새 링크를 읽는다');
+ assert.deepEqual(parseIncomingLink(link,web),{id:a.id,key:a.key});
+ assert.deepEqual(parseIncomingLink(link.replace('#?k=','#k='),web),{id:a.id,key:a.key});
+});

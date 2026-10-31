@@ -122,8 +122,8 @@ async function copyPrepared(){
 async function sharePrepared(){
   if(!prepared){status('sendState','비밀편지 내용을 먼저 입력해 주세요.',true);return;}
   try{
-    if(native)await Share.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared,dialogTitle:'비밀편지 보내기'});
-    else if(navigator.share)await navigator.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared});
+    if(native)await Share.share({title:'비밀편지',url:prepared,dialogTitle:'비밀편지 보내기'});
+    else if(navigator.share)await navigator.share({title:'비밀편지',url:prepared});
     else throw Error('공유 메뉴를 사용할 수 없습니다.');
     $('ready').classList.add('hidden');
     markShared();

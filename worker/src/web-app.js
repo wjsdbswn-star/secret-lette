@@ -91,7 +91,7 @@ const webApp=(()=>{
   const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode('secret-letter-v10|'+letterId+'|'+mode+'|'+ttl)},key,new TextEncoder().encode(text));
   const data={id:letterId,key:encode(rawKey),iv:encode(iv),ciphertext:encode(new Uint8Array(encrypted)),mode,seconds:ttl};rawKey.fill(0);
   await api('create',{id:data.id,iv:data.iv,ciphertext:data.ciphertext,mode:data.mode,seconds:data.seconds});
-  prepared={...data,url:location.origin+'/l/'+data.id+'#k='+data.key};
+  prepared={...data,url:location.origin+'/l/'+data.id+'#?k='+data.key};
   $('webShareLink').value=prepared.url;
   try{const all=saved().filter(x=>x.id!==data.id);all.push({...data,createdAt:Date.now()});localStorage.setItem(cacheKey,JSON.stringify(all.slice(-5)));show('webSenderButton',true);}catch{show('webSenderButton',false);}
   return prepared;
@@ -102,7 +102,7 @@ const webApp=(()=>{
   if(!prepared)return;
   try{
    if(typeof nav.share!=='function')throw Error('공유 메뉴를 사용할 수 없습니다.');
-   await nav.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요. 앱 설치 없이 읽어보세요.',url:prepared.url});
+   await nav.share({title:'비밀편지',url:prepared.url});
    markShared();show('webReady',false);
   }catch(e){
    if(e.name==='AbortError'){show('webReady',false);say('공유를 취소했습니다. 다시 보내면 같은 링크로 공유합니다.');}

@@ -40,7 +40,8 @@ export function buildShareLink(webBase,id,key) {
   const u=new URL(webBase);
   if(u.protocol!=='https:' || u.username || u.password || u.search || u.hash || u.pathname!=='/') throw Error('웹 주소 설정이 올바르지 않습니다.');
   if(!/^[\w-]{24}$/.test(id)||fromBase64Url(key).length!==32)throw Error('링크 데이터가 잘못되었습니다.');
-  return `${u.origin}/l/${id}#k=${key}`;
+  // '?' keeps '#k' from becoming a hashtag; legacy URLSearchParams readers accept both.
+  return `${u.origin}/l/${id}#?k=${key}`;
 }
 export function parseIncomingLink(raw, webBase) {
   const url=new URL(raw), expected=new URL(webBase), isWeb=url.protocol==='https:'&&url.origin===expected.origin;
@@ -53,3 +54,4 @@ export function parseIncomingLink(raw, webBase) {
   if(!secret||fromBase64Url(secret).length!==32)throw Error('편지 열쇠가 없는 링크입니다.');
   return {id:match[1],key:secret};
 }
+
