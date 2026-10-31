@@ -1,0 +1,42 @@
+name: 비밀편지 iPhone 네이티브 앱 빌드 (서명 전)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'scripts/build_ios.mjs'
+      - 'scripts/patch_native.mjs'
+      - '.github/workflows/ios-app.yml'
+permissions:
+  contents: read
+jobs:
+  iphone:
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 앱 송수신과 열람 방식 시험
+        run: npm test
+      - name: Mac 빌드 도구 확인
+        run: |
+          xcodebuild -version
+          pod --version
+      - name: 아이폰 앱 빌드 및 앱 연결 주소 등록
+        run: node scripts/build_ios.mjs --ci
+      - name: 서명 전 iOS 앱 아카이브 보관
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-letter-iOS-UNSIGNED-not-installable
+          path: artifacts/secret-letter-ios-UNSIGNED-archive.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: 설치 가능 여부 표시
+        run: |
+          echo '### iPhone 네이티브 앱 빌드 완료 · Apple 서명 전' >> "$GITHUB_STEP_SUMMARY"
+          echo '이 파일은 네이티브 실행 파일을 포함한 Xcode 아카이브이며, 현재 아이폰에 설치할 수 없습니다. 설치·배포에는 Apple 개발자 계정의 서명 및 프로비저닝 설정이 필요합니다.' >> "$GITHUB_STEP_SUMMARY"

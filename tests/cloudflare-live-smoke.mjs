@@ -16,12 +16,16 @@ async function post(path,body) {
  let payload; try {payload=await r.json();}catch {payload={};}
  return {status:r.status,payload};
 }
-const health=await get('/v10/health');
-const info=await health.json();
+let health,info;
+for(let n=0;n<18;n++){
+ health=await get('/v10/health');info=await health.json();
+ if(health.status===200&&info.reportRetentionDays===20)break;
+ await new Promise(resolve=>setTimeout(resolve,5000));
+}
 assert.equal(health.status,200,JSON.stringify(info));
 assert.equal(info.service,'secret-letter-v10');
 assert.equal(info.ok,true);
-assert.equal(info.reportRetentionDays,30,'Cloudflare에 v10.8 서버 배포가 필요합니다.');
+assert.equal(info.reportRetentionDays,20,'신고 자료 20일 보관 업데이트가 필요합니다.');
 console.log('OK: live Worker health and D1 initialized');
 
 let home,homeHtml='';
@@ -85,7 +89,7 @@ assert.equal(g2.status,200,JSON.stringify(g2));
 assert.equal(g1.payload.deadlineAt,g2.payload.deadlineAt);
 assert.equal(await decryptLetter(g2.payload,group.key,group.id),'앱 연동 자동시험 · 여러 명');
 console.log('OK: shared group deadline and decrypt; data expires automatically');
-// 신고한 편지에만 키와 암호문을 30일간 보관하는 실제 D1 경로를 시험합니다.
+// 신고한 편지에만 키와 암호문을 20일간 보관하는 실제 D1 경로를 시험합니다.
 const evidenceLetter=await encryptLetter('공개 자동시험 문장입니다. 개인정보가 없습니다.','single',120);
 let evid=await post('/v10/create',{id:evidenceLetter.id,iv:evidenceLetter.iv,ciphertext:evidenceLetter.ciphertext,seconds:evidenceLetter.seconds,mode:evidenceLetter.mode});
 assert.equal(evid.status,201,JSON.stringify(evid));
@@ -97,7 +101,7 @@ const evidence={id:evidenceLetter.id,reportToken:openedEvidence.payload.reportTo
  iv:openedEvidence.payload.iv,ciphertext:openedEvidence.payload.ciphertext};
 const reported=await post('/v10/report',evidence);
 assert.equal(reported.status,201,JSON.stringify(reported));
-assert.equal(reported.payload.retentionDays,30);
+assert.equal(reported.payload.retentionDays,20);
 const replay=await post('/v10/report',evidence);
 assert.equal(replay.status,403);
 console.log('OK: real Cloudflare D1 optional report archived, once-only report receipt prevents replay');

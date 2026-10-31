@@ -5,7 +5,18 @@ import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 const base=resolve(process.cwd(),'mobile');
 const android=resolve(base,'android/app/src/main/AndroidManifest.xml');
+const gradle=resolve(base,'android/app/build.gradle');
 const ios=resolve(base,'ios/App/App/Info.plist');
+if(existsSync(gradle)){
+  const version=JSON.parse(readFileSync(resolve(base,'package.json'),'utf8')).version;
+  if(!/^\d+\.\d+\.\d+$/.test(version))throw Error('앱 버전 형식이 올바르지 않습니다.');
+  const [major,minor,patch]=version.split('.').map(Number);
+  if(minor>999||patch>999)throw Error('앱 버전 범위가 올바르지 않습니다.');
+  const code=major*1000000+minor*1000+patch;
+  if(code<1||code>2100000000)throw Error('Android 버전 코드 범위가 올바르지 않습니다.');
+  const content=readFileSync(gradle,'utf8').replace(/versionCode\s+\d+/,'versionCode '+code).replace(/versionName\s+"[^"]*"/,'versionName "'+version+'"');
+  writeFileSync(gradle,content);console.log('Android 앱 업데이트 버전 설정: '+version+' ('+code+')');
+}
 if(existsSync(android)){
   let content=readFileSync(android,'utf8');
   if(!content.includes('android:scheme="secretletter"')){

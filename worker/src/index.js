@@ -7,7 +7,8 @@ import {secureReady,secureTable,secureCreate,secureOpen,secureCleanup} from './s
 const MAX_DURATION = 30 * 86400 + 23 * 3600 + 59 * 60 + 59;
 const UNOPENED_MS = 30 * 86400 * 1000;
 const MAX_BODY_BYTES = 16384;
-const REPORT_RETENTION_MS = 30 * 86400 * 1000;
+const REPORT_RETENTION_DAYS = 20;
+const REPORT_RETENTION_MS = REPORT_RETENTION_DAYS * 86400 * 1000;
 const REPORT_TOKEN_MS = 30 * 60 * 1000;
 const B64 = /^[A-Za-z0-9_-]+$/;
 const HEADERS = {
@@ -169,7 +170,7 @@ async function report(db,r) {
   await db.prepare('INSERT OR IGNORE INTO reports_v10 (id,mode,duration_seconds,iv,ciphertext,reader_key,reported_at_ms,delete_after_ms) VALUES (?,?,?,?,?,?,?,?)')
     .bind(r.id,r.mode,r.durationSeconds,r.iv,r.ciphertext,r.key,now,now+REPORT_RETENTION_MS).run();
   // 원문/키 조회용 공개 엔드포인트는 만들지 않습니다. 적법한 요청은 별도 절차로 검토합니다.
-  return answer({ok:true,reportId:r.id,retentionDays:30},201);
+  return answer({ok:true,reportId:r.id,retentionDays:REPORT_RETENTION_DAYS},201);
 }
 async function cleanup(db) {
   const now = Date.now();
@@ -178,7 +179,8 @@ async function cleanup(db) {
        OR (opened_at_ms IS NOT NULL AND expires_at_ms<=?)`)
     .bind(now,now).run();
   await db.prepare('DELETE FROM report_receipts_v10 WHERE expires_at_ms<=?').bind(now).run();
-  await db.prepare('DELETE FROM reports_v10 WHERE delete_after_ms<=?').bind(now).run();
+  // Apply the 20-day report policy to older rows as well, without touching letters.
+  await db.prepare('DELETE FROM reports_v10 WHERE delete_after_ms<=? OR reported_at_ms<=?').bind(now,now-REPORT_RETENTION_MS).run();
   await db.prepare('DELETE FROM request_limits_v10 WHERE expires_at_ms<=?').bind(now).run();
 }
 
@@ -205,7 +207,7 @@ export default {
       if (!env.DB) return answer({error:'D1 DB 바인딩이 없습니다.'},503);
       if (p!=='/v10/health' && p!=='/v10/create' && p!=='/v10/open' && p!=='/v10/status' && p!=='/v10/report') return answer({error:'없는 경로입니다.'},404);
       await ensureSchema(env.DB);
-      if (p==='/v10/health' && request.method==='GET') return answer({ok:true,service:'secret-letter-v10',reportRetentionDays:30});
+      if (p==='/v10/health' && request.method==='GET') return answer({ok:true,service:'secret-letter-v10',reportRetentionDays:REPORT_RETENTION_DAYS});
       if (request.method!=='POST') return answer({error:'없는 경로입니다.'},404);
       const data=await readBody(request);
       const limit=await throttle(env.DB,request,p);

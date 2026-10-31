@@ -59,7 +59,7 @@ test('편지를 받으면 앱 없이 브라우저에서 복호화하고 최초 �
  assert.equal(typeof callbacks.tick,'function');
  assert.equal(elements.report.classList.contains('hidden'),false);
  await elements.report.onclick();
- assert.match(elements.notice.textContent,/30일 증거 보관 접수 완료/);
+ assert.match(elements.notice.textContent,/20일 증거 보관 접수 완료/);
  elements.close.onclick();
  assert.equal(elements.letter.textContent,'');
  const retry=await worker.fetch(new Request('https://letter.test/v10/open',{
@@ -76,7 +76,7 @@ test('9차 웹페이지의 편지 쓰기 UI는 숨기고 기존 링크 해독은
  assert.match(html,/releases\/latest\/download\/secret-letter\.apk/);
 });
 
-test('신고 증거 30일 보관은 유효한 열람 증명과 원래 암호문이 필요하다',async()=>{
+test('신고 증거 20일 보관은 유효한 열람 증명과 원래 암호문이 필요하다',async()=>{
  const DB=makeD1();
  const letter=await encryptLetter('피해증거 저장 테스트','single',40);
  const body={id:letter.id,mode:letter.mode,seconds:letter.seconds,iv:letter.iv,ciphertext:letter.ciphertext};
@@ -91,7 +91,9 @@ test('신고 증거 30일 보관은 유효한 열람 증명과 원래 암호문�
  assert.equal(r.status,400,'tampered ciphertext is rejected by AES-GCM before receipt check');
  r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proof)}),{DB});
  assert.equal(r.status,201);
- assert.equal((await r.json()).retentionDays,30);
+ assert.equal((await r.json()).retentionDays,20);
+ const stored=await DB.prepare('SELECT reported_at_ms,delete_after_ms FROM reports_v10 WHERE id=?').bind(letter.id).first();
+ assert.equal(stored.delete_after_ms-stored.reported_at_ms,20*86400*1000,'보관 시점은 신고 접수 시각이며 기간은 정확히 20일');
  r=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proof)}),{DB});
  assert.equal(r.status,403,'replayed proof must be rejected');
  r=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
@@ -119,15 +121,21 @@ test('잘못된 신고 암호키는 자동 보관하지 않고 올바른 키는 
 });
 test('기간 지난 신고 증거는 예약 작업으로 자동 삭제된다',async()=>{
  const DB=makeD1();
- const letter=await encryptLetter('30일 자동 삭제 모의시험','single',30);
+ const letter=await encryptLetter('20일 자동 삭제 모의시험','single',30);
  const put=await worker.fetch(new Request('https://letter.test/v10/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id,mode:letter.mode,seconds:letter.seconds,iv:letter.iv,ciphertext:letter.ciphertext})}),{DB});
  assert.equal(put.status,201);
  const opened=await worker.fetch(new Request('https://letter.test/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id})}),{DB});
  const record=await opened.json();
  const save=await worker.fetch(new Request('https://letter.test/v10/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:letter.id,reportToken:record.reportToken,key:letter.key,mode:record.mode,durationSeconds:record.durationSeconds,iv:record.iv,ciphertext:record.ciphertext})}),{DB});
  assert.equal(save.status,201);
- await DB.prepare('UPDATE reports_v10 SET delete_after_ms=0 WHERE id=?').bind(letter.id).run();
+ const day=86400*1000;
+ await DB.prepare('UPDATE reports_v10 SET reported_at_ms=?,delete_after_ms=? WHERE id=?').bind(Date.now()-20*day+60000,Date.now()+10*day,letter.id).run();
  let task;
+ await worker.scheduled({}, {DB}, {waitUntil(p){task=p}});
+ await task;
+ let retained=await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10 WHERE id=?').bind(letter.id).first();
+ assert.equal(retained.n,1,'20일이 되기 전에는 기존 신고 기록도 유지');
+ await DB.prepare('UPDATE reports_v10 SET reported_at_ms=? WHERE id=?').bind(Date.now()-20*day-1000,letter.id).run();
  await worker.scheduled({}, {DB}, {waitUntil(p){task=p}});
  await task;
  const result=await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10 WHERE id=?').bind(letter.id).first();

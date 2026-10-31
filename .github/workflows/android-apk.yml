@@ -7,6 +7,7 @@ on:
       - 'mobile/**'
       - 'tests/**'
       - 'scripts/patch_native.mjs'
+      - 'scripts/check_android_update.mjs'
       - '.github/workflows/android-apk.yml'
 
 permissions:
@@ -52,7 +53,15 @@ jobs:
       - name: 안드로이드 프로젝트 생성
         run: npx cap add android
       - name: 앱 링크 등록
-        run: node ../scripts/patch_native.mjs
+        working-directory: .
+        run: |
+          node scripts/patch_native.mjs
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const manifest=readFileSync('mobile/android/app/src/main/AndroidManifest.xml','utf8');
+          for(const host of ['open','sent','compose'])assert.ok(manifest.includes('android:host="'+host+'"'),'Missing native app link: '+host);
+          JS
       - name: 앱 파일 동기화
         run: npx cap sync android
       - name: 실제 APK 만들기
@@ -61,21 +70,34 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: APK 이름 정리
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk ../secret-letter-v10-13-test.apk
-      - name: APK 파일 올리기
-        uses: actions/upload-artifact@v4
-        with:
-          name: 비밀편지-안드로이드-설치파일
-          path: secret-letter-v10-13-test.apk
-          if-no-files-found: error
-      - name: 공개 APK 설치 링크 갱신 (시험용)
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ../secret-letter-v10-14-test.apk
+      - name: 기존 앱과 업데이트 서명·앱 ID·버전 비교
+        id: update_check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp ../secret-letter-v10-13-test.apk /tmp/secret-letter.apk
-          if gh release view v10.13 --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload v10.13 /tmp/secret-letter.apk --clobber --repo "${{ github.repository }}"
+          gh release download --repo "${{ github.repository }}" --pattern secret-letter.apk --dir "$RUNNER_TEMP/secretletter-previous"
+          node ../scripts/check_android_update.mjs --previous "$RUNNER_TEMP/secretletter-previous/secret-letter.apk" --next android/app/build/outputs/apk/debug/app-debug.apk --apksigner "$ANDROID_HOME/build-tools/35.0.0/apksigner" --aapt "$ANDROID_HOME/build-tools/35.0.0/aapt2"
+      - name: APK 파일 올리기
+        uses: actions/upload-artifact@v4
+        with:
+          name: 비밀편지-안드로이드-업데이트검사파일
+          path: secret-letter-v10-14-test.apk
+          if-no-files-found: error
+      - name: 공개 APK 설치 링크 갱신 (시험용)
+        if: steps.update_check.outputs.compatible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp ../secret-letter-v10-14-test.apk /tmp/secret-letter.apk
+          if gh release view v10.14 --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload v10.14 /tmp/secret-letter.apk --clobber --repo "${{ github.repository }}"
           else
-            gh release create v10.13 /tmp/secret-letter.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "비밀편지 v10.13 Android 시험판" --notes "작성 화면에서 1회 시간제한 또는 시간만 제한을 체크한 뒤 보내기를 누르면 다른 앱으로 공유합니다. 아이폰은 Safari에서 홈 화면 추가 없이 작성·보내기가 가능합니다. 보안 검증 전 시험판으로 실제 민감한 편지는 보내지 마세요. 기존 Debug APK와 서명이 달라 덮어쓰기 설치가 안 될 수 있습니다."
+            gh release create v10.14 /tmp/secret-letter.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "비밀편지 v10.14 Android 업데이트" --notes "작성 화면에서 1회 시간제한 또는 시간만 제한을 체크한 뒤 보내기를 누르면 다른 앱으로 공유합니다. 신고 자료는 접수 후 20일간 보관합니다. 직전 공개 APK와 앱 ID·서명·버전 호환 검사를 통과한 업데이트입니다."
           fi
+      - name: 호환되지 않는 APK는 업데이트로 배포하지 않음
+        if: steps.update_check.outputs.compatible != 'true'
+        run: |
+          echo '기존 앱과 서명이 달라 업데이트 배포를 중단했습니다. 기존 앱과 데이터를 지우지 마세요. 이전 APK의 원래 서명키가 필요합니다.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 

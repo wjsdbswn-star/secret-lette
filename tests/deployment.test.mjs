@@ -44,7 +44,7 @@ test('네이티브 앱이 백그라운드로 가면 열린 편지를 닫는다',
 test('GitHub APK 빌드 직전에 자동 테스트를 수행한다',()=>{
  const workflow=read('../.github/workflows/android-apk.yml');
  assert.match(workflow,/name: 보안 및 소멸 기능 자동 테스트[\s\S]*?run: npm test/);
- assert.match(workflow,/name: 비밀편지-안드로이드-설치파일/);
+ assert.match(workflow,/uses: actions\/upload-artifact@v4/);
 });
 
 test('보내기 버튼 한 번으로 암호화 등록 후 공유 창을 연다',()=>{
