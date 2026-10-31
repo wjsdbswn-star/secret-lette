@@ -57,7 +57,7 @@ test('시간만 제한 체크 후 보내기를 누르면 공유창을 열고 같
  await e.send.fire('click');
  assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create'))[0].payload.mode,'group');
- assert.equal(e.send.textContent,'새 편지 쓰기');await e.reshare.fire('click');
+ assert.equal(e.send.textContent,'보내기');assert.equal(e.message.value,'');assert.equal(e.chooseGroup.checked,true);await e.reshare.fire('click');
  assert.equal(a.shares.length,2);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.copies.length,0);
  assert.equal(a.requests.filter(r=>r.url.endsWith('/create')).length,1);
  const parsed=letter.parseIncomingLink(a.shares[0].url,'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
@@ -70,7 +70,7 @@ test('1회 시간제한 기본 체크에서 보내기를 눌러야 편지를 만
  const a=app(),e=a.elements;
  await e.goCompose.fire('click');e.message.value='한 명 보내기 시험';await e.message.fire('input');
  assert.equal(e.chooseSingle.checked,true);assert.equal(a.requests.length,0);await e.send.fire('click');
- assert.equal(e.send.textContent,'새 편지 쓰기');assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
+ assert.equal(e.send.textContent,'보내기');assert.equal(e.message.value,'');assert.equal(a.shares.length,1);assert.equal(a.copies.length,0);
  const create=a.requests.find(r=>r.url.endsWith('/create'));assert.equal(create.payload.mode,'single');
  assert.equal(a.sqlite.prepare('SELECT mode FROM letters_v10 WHERE id=?').get(create.payload.id).mode,'single');
 });
@@ -86,18 +86,19 @@ test('열람 방식을 체크하는 것만으로 공유하지 않고 글을 보�
 test('자기가 보낸 링크를 앱으로 열거나 붙여넣어도 수신자의 1회를 쓰지 않는다',async()=>{
  const a=app(),e=a.elements;e.message.value='아이폰 친구에게 보낼 편지';await e.send.fire('click');
  const url=a.shares[0].url,parsed=letter.parseIncomingLink(url,'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
- await a.appEvents.appUrlOpen({url});assert.equal(e.senderPlain.textContent,e.message.value);
+ await a.appEvents.appUrlOpen({url});assert.equal(e.senderPlain.textContent,'아이폰 친구에게 보낼 편지');
  await e.senderClose.fire('click');e.pasteLink.value=url;await e.pasteLink.fire('input');await e.open.fire('click');
- assert.equal(e.senderPlain.textContent,e.message.value);assert.equal(a.requests.some(r=>r.url.endsWith('/open')),false);
+ assert.equal(e.senderPlain.textContent,'아이폰 친구에게 보낼 편지');assert.equal(a.requests.some(r=>r.url.endsWith('/open')),false);
  const response=await worker.fetch(new Request('https://test.example/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:parsed.id})}),{DB:a.DB});
- assert.equal(response.status,200);assert.equal(await letter.decryptLetter(await response.json(),parsed.key,parsed.id),e.message.value);
+ assert.equal(response.status,200);assert.equal(await letter.decryptLetter(await response.json(),parsed.key,parsed.id),'아이폰 친구에게 보낼 편지');
 });
-test('새 편지 쓰기는 앞선 편지를 보존하고 빈 작성 화면에서 다른 링크를 만든다',async()=>{
- const a=app(),e=a.elements;e.message.value='첫 편지';await e.send.fire('click');const first=a.shares[0].url;
- assert.equal(e.newLetter,undefined);assert.equal(e.send.textContent,'새 편지 쓰기');await e.send.fire('click');
+test('공유 성공 후 추가 클릭 없이 빈 작성 화면으로 돌아가고 이전 편지도 보존한다',async()=>{
+ const a=app(),e=a.elements;e.message.value='첫 편지';e.minutes.value='2';await e.send.fire('click');const first=a.shares[0].url;
+ assert.equal(e.newLetter,undefined);assert.equal(e.send.textContent,'보내기');
+ assert.equal(e.message.value,'');assert.equal(e.count.textContent,'0 / 1600자');assert.equal(e.minutes.value,'2');assert.equal(e.compose.classList.contains('hidden'),false);
+ assert.equal(e.shareLink.value,first);assert.equal(e.senderPreviewButton.classList.contains('hidden'),false);assert.equal(e.sendState.textContent,'');await e.send.fire('click');
  assert.equal(e.send.textContent,'보내기');assert.equal(a.shares.length,1);
- assert.equal(e.message.value,'');assert.equal(e.count.textContent,'0 / 1600자');assert.equal(e.shareLink.value,'');assert.equal(e.senderPreviewButton.classList.contains('hidden'),true);
- e.message.value='두 번째 편지';await e.send.fire('click');assert.notEqual(a.shares[1].url,first);
+ e.message.value='두 번째 편지';await e.message.fire('input');await e.send.fire('click');assert.notEqual(a.shares[1].url,first);assert.equal(e.message.value,'');
  assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
 });
 test('공유 취소·실패 때는 보내기 버튼과 글·같은 링크를 유지한다',async()=>{

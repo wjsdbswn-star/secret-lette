@@ -39,7 +39,7 @@ const webApp=(()=>{
  const canCompose=installed||apple||query.get('app')==='1'||query.get('ios')==='1'||query.get('install')==='ios';
  const cacheKey='secretletter-sent-preview-v1',previewMs=15*60*1000;
  const timeIds=['webDays','webHours','webMinutes','webSeconds'];
- let mode='single',prepared=null,busy=false,senderId=null,senderTimer=null,previewEpoch=0,shared=false;
+ let mode='single',prepared=null,busy=false,senderId=null,senderTimer=null,previewEpoch=0;
  const show=(name,on)=>$(name).classList[on?'remove':'add']('hidden');
  const say=(text,bad=false)=>{$('webSendState').textContent=text;$('webSendState').classList[bad?'add':'remove']('bad');};
  function saved(){
@@ -64,7 +64,7 @@ const webApp=(()=>{
  }
  const seconds=()=>timeIds.reduce((total,name,i)=>total+Number($(name).value)*[86400,3600,60,1][i],0);
  function invalidate(){
-  shared=false;prepared=null;show('webReady',false);show('webSenderButton',false);show('webReshare',false);$('composeSend').textContent='보내기';$('webShareLink').value='';say('');
+  prepared=null;show('webReady',false);show('webSenderButton',false);show('webReshare',false);$('composeSend').textContent='보내기';$('webShareLink').value='';say('');
   $('webCount').textContent=$('webMessage').value.length+' / 1600자';
   let left=seconds();const parts=[];
   for(const [label,size] of [['일',86400],['시간',3600],['분',60],['초',1]]){const n=Math.floor(left/size);left%=size;if(n)parts.push(n+label);}
@@ -97,13 +97,13 @@ const webApp=(()=>{
   return prepared;
  }
  function fallback(text){show('webReady',true);show('webShare',typeof nav.share==='function');$('webShareLink').value=prepared?.url||'';say(text,true);}
- function markShared(){shared=true;$('composeSend').textContent='새 편지 쓰기';show('webReshare',true);}
+ function markShared(){$('webMessage').value='';$('webCount').textContent='0 / 1600자';$('composeSend').textContent='보내기';show('webReshare',true);say('');window.scrollTo?.({top:0,behavior:'auto'});}
  async function share(){
   if(!prepared)return;
   try{
    if(typeof nav.share!=='function')throw Error('공유 메뉴를 사용할 수 없습니다.');
    await nav.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요. 앱 설치 없이 읽어보세요.',url:prepared.url});
-   markShared();show('webReady',false);say('공유 화면을 닫았습니다. 실제로 전송했는지 확인해 주세요.');
+   markShared();show('webReady',false);
   }catch(e){
    if(e.name==='AbortError'){show('webReady',false);say('공유를 취소했습니다. 다시 보내면 같은 링크로 공유합니다.');}
    else fallback(typeof nav.share==='function'?'아래 공유하기를 눌러 보낼 앱을 선택해 주세요.':'아래 링크 복사를 눌러 보내 주세요.');
@@ -130,7 +130,6 @@ const webApp=(()=>{
  $('webReshare').onclick=()=>sendSelected(mode);
  $('composeSend').onclick=async()=>{
   if(busy||!canCompose)return;
-  if(shared){clearPreview();$('webMessage').value='';invalidate();begin();return;}
   if(!$('webMessage').value.trim()){say('편지 내용을 입력해 주세요.',true);$('webMessage').focus();return;}
   if(seconds()<1||seconds()>2678399){say('읽는 시간을 1초 이상 설정해 주세요.',true);return;}
   await sendSelected(mode);

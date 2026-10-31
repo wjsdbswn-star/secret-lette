@@ -11,7 +11,7 @@ const $=id=>document.getElementById(id);
 const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/';
 const DEFAULT_API=import.meta.env.VITE_API_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
-let mode='single',prepared=null,preparedId=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0,shared=false,reportEvidence=null;
+let mode='single',prepared=null,preparedId=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0,reportEvidence=null;
 const SERVICE_CONFIG_URL='https://raw.githubusercontent.com/wjsdbswn-star/secret-lette/main/server-config.json';
 let serviceConfigPromise=null;
 const native=Capacitor.isNativePlatform();
@@ -89,14 +89,12 @@ function updateOptionsLabel(){
   const value=Math.floor(left/size);left%=size;if(value)parts.push(value+unit);
  }
  $('optionsLabel').textContent=parts.join(' ')||'0초';
- $('send').textContent=shared?'새 편지 쓰기':'보내기';
+ $('send').textContent='보내기';
 }
-function clearReady(){shared=false;updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');$('reshare').classList.add('hidden');}
-function markShared(){shared=true;updateOptionsLabel();$('reshare').classList.remove('hidden');}
-function startNewLetter(){
- if($('send').disabled)return;
- $('message').value='';$('count').textContent='0 / 1600자';clearReady();status('sendState','');
- page('compose');$('message').focus();
+function clearReady(){updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');$('reshare').classList.add('hidden');}
+function markShared(){
+ $('message').value='';$('count').textContent='0 / 1600자';updateOptionsLabel();
+ $('reshare').classList.remove('hidden');status('sendState','');page('compose');window.scrollTo?.({top:0,behavior:'auto'});
 }
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
@@ -129,7 +127,6 @@ async function sharePrepared(){
     else throw Error('공유 메뉴를 사용할 수 없습니다.');
     $('ready').classList.add('hidden');
     markShared();
-    status('sendState','공유 화면을 닫았습니다. 실제로 전송했는지 확인해 주세요.');
   }catch(e){
     if(e?.name==='AbortError'){
       $('ready').classList.add('hidden');
@@ -167,7 +164,6 @@ async function sendSelected(){
   finally{btn.disabled=false;for(const id of ['message','days','hours','minutes','seconds','chooseSingle','chooseGroup'])$(id).disabled=false;}
 }
 $('send').addEventListener('click',async()=>{
- if(shared){startNewLetter();return;}
  if(!$('message').value.trim()){status('sendState','편지 내용을 입력해 주세요.',true);$('message').focus();return;}
  const sec=timeSeconds();
  if(sec<1||sec>MAX_SECONDS){status('sendState','읽는 시간을 1초 이상 설정해 주세요.',true);return;}

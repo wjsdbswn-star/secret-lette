@@ -43,10 +43,11 @@ test('암호화가 막힌 브라우저는 1회 열람 API를 호출하기 전에
  const blocked=await app({db:sender.sqlite,pathname:url.pathname,hash:url.hash,confirmOpen:true,cryptoImpl:{}});await blocked.e.open.onclick();assert.equal(blocked.requests.length,0);assert.match(blocked.e.notice.textContent,/Safari/);
  assert.equal((await receive(sender,url.pathname.split('/').pop())).status,200);
 });
-test('웹에서도 새 편지 쓰기는 앞선 편지를 유지하고 새 링크를 만든다',async()=>{
- const a=await app();await draft(a,'첫 번째');await a.e.composeSend.onclick();const first=a.shares[0].url;
- assert.equal(a.e.webNewLetter,undefined);assert.equal(a.e.composeSend.textContent,'새 편지 쓰기');await a.e.composeSend.onclick();assert.equal(a.e.webMessage.value,'');assert.equal(a.e.webShareLink.value,'');assert.equal(a.shares.length,1);assert.equal(a.e.composeSend.textContent,'보내기');
- a.e.webMessage.value='두 번째';a.e.webMessage.oninput();await a.e.composeSend.onclick();assert.notEqual(a.shares[1].url,first);assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
+test('웹에서도 공유 성공 후 바로 빈 작성 화면을 보이며 추가 클릭 없이 다음 편지를 쓴다',async()=>{
+ const a=await app();await draft(a,'첫 번째');a.e.webMinutes.value='2';await a.e.composeSend.onclick();const first=a.shares[0].url;
+ assert.equal(a.e.webNewLetter,undefined);assert.equal(a.e.composeSend.textContent,'보내기');assert.equal(a.e.webMessage.value,'');assert.equal(a.e.webCount.textContent,'0 / 1600자');assert.equal(a.e.webMinutes.value,'2');assert.equal(a.e.webShareLink.value,first);assert.equal(a.e.webSenderButton.classList.contains('hidden'),false);assert.equal(a.e.webSendState.textContent,'');
+ await a.e.composeSend.onclick();assert.equal(a.shares.length,1);
+ a.e.webMessage.value='두 번째';a.e.webMessage.oninput();await a.e.composeSend.onclick();assert.notEqual(a.shares[1].url,first);assert.equal(a.e.webMessage.value,'');assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
 });
 async function draft(a,text){a.e.send.onclick();a.e.webMessage.value=text;a.e.webMessage.oninput();}
 function choose(a,mode){a.e.webSingle.checked=mode==='single';a.e.webGroup.checked=mode==='group';(mode==='single'?a.e.webSingle:a.e.webGroup).onchange();}
