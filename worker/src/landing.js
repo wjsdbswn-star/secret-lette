@@ -24,7 +24,7 @@ ${WEB_APP_STYLE}</style></head><body><main><section class="shell">
 <button id="open" class="secondary" type="button" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9L12 3 4 10Z"/><path d="m4 11 8 5 8-5"/></svg>열기</button>
 </div>
 <a id="senderJump" class="text-link hidden" rel="noopener noreferrer" href="#">보낸 편지 확인</a>
-<p id="senderGuide" class="sr-only hidden">이 편지를 보낸 사람은 앱에서 확인하세요. 받은 사람용 열기 버튼을 누르면 수신자의 1회 열람이 사라집니다.</p>
+<p id="senderGuide" class="small hidden">보낸 사람은 「보낸 편지 확인」을 누르세요. 「열기」는 수신자의 1회 열람을 사용합니다.</p>
 <div id="linkPanel" class="hidden"><form id="linkForm"><label class="sr-only" for="linkInput">받은 편지 링크</label><div class="link-row"><input id="linkInput" type="url" placeholder="받은 링크를 붙여넣으세요" required autocomplete="off" autocapitalize="off" spellcheck="false"><button class="secondary" type="submit">확인</button></div></form><p class="small link-help">앱 설치 없이 웹에서 읽을 수 있습니다.</p></div>
 <div id="during" class="hidden"><p id="time"></p><div id="letter"></div><button id="close" class="secondary" type="button">닫기</button>
 <details class="report-details"><summary>도움</summary><p id="reportInfo">협박·괴롭힘 등 피해를 받았다면 편지를 닫기 전에 증거 보관을 요청할 수 있습니다. 제출된 편지와 열람키는 20일간 별도 보관됩니다. 자동으로 수사기관에 신고되지는 않습니다.</p><button id="report" class="report hidden" type="button">신고하기 (20일 보관)</button></details></div>
@@ -113,19 +113,22 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden && plainSho
 window.addEventListener('pagehide',()=>{if(plainShown)close();});
 $('open').onclick=async()=>{
  if(webApp.hasSent(id))return webApp.preview(id);
+ if(!confirm('이 편지를 받은 분인가요?\n1회 시간제한 편지는 처음 연 사람만 읽을 수 있습니다.\n보낸 분은 취소하고 「보낸 편지 확인」을 누르세요.'))return;
  $('open').disabled=true;$('notice').textContent='암호화된 편지를 여는 중입니다…';
  const start=performance.now();
  try {
+  // Check browser/key support before the one-time API can consume the letter.
+  if(typeof crypto==='undefined'||!crypto.subtle)throw Error('이 브라우저에서 암호화를 사용할 수 없습니다. 받은 링크를 복사해 Safari 또는 Chrome에서 열어 주세요.');
+  const rawKey=base64url(secret);
+  if(rawKey.length!==32)throw Error('암호키 오류');
+  const cryptoKey=await crypto.subtle.importKey('raw',rawKey,'AES-GCM',false,['decrypt']);
+  rawKey.fill(0);
   const endpoint=location.pathname.startsWith('/s/')?'/v11/open':'/v10/open';
   const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id}),cache:'no-store'});
   const record=await r.json();
   if(!r.ok)throw Error(record.error||'편지를 읽을 수 없습니다.');
   const ttl=record.durationSeconds;
   if(!Number.isInteger(ttl)||ttl<1 || ttl>2678399)throw Error('편지 데이터 오류');
-  const rawKey=base64url(secret);
-  if(rawKey.length!==32)throw Error('암호키 오류');
-  const cryptoKey=await crypto.subtle.importKey('raw',rawKey,'AES-GCM',false,['decrypt']);
-  rawKey.fill(0);
   const aad=new TextEncoder().encode('secret-letter-v10|'+id+'|'+record.mode+'|'+ttl);
   const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:base64url(record.iv),additionalData:aad},cryptoKey,base64url(record.ciphertext));
   const deadline=record.deadlineAt, serverNow=record.serverNow;

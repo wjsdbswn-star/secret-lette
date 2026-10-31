@@ -21,6 +21,7 @@ export const WEB_APP_MARKUP = `<section id="webCompose" class="compose-panel hid
 <fieldset id="webReadModes" class="read-mode"><legend class="sr-only">열람 방식</legend><label for="webSingle"><input id="webSingle" type="radio" name="webReadMode" value="single" checked>1회 시간제한</label><label for="webGroup"><input id="webGroup" type="radio" name="webReadMode" value="group">시간만 제한</label></fieldset>
 <details class="time-options"><summary>읽는 시간 <span id="webDuration">1분</span></summary><div class="time-grid">${select('webDays','일',30)}${select('webHours','시간',23)}${select('webMinutes','분',59,1)}${select('webSeconds','초',59)}</div></details>
 <button id="composeSend" class="primary compose-send" type="button">보내기</button>
+<button id="webNewLetter" class="secondary compose-send hidden" type="button" style="margin-top:10px">새 편지 쓰기</button>
 <p id="webSendState" class="compose-state" role="status" aria-live="polite"></p>
 <div id="webReady" class="share-fallback hidden"><button id="webShare" class="primary" type="button">공유하기</button><button id="webCopy" class="secondary" type="button">링크 복사</button><label class="sr-only" for="webShareLink">보낼 편지 링크</label><input id="webShareLink" readonly autocomplete="off" spellcheck="false"></div>
 <button id="webSenderButton" class="text-link hidden" type="button">보낸 편지 확인</button>
@@ -91,6 +92,7 @@ const webApp=(()=>{
   const data={id:letterId,key:encode(rawKey),iv:encode(iv),ciphertext:encode(new Uint8Array(encrypted)),mode,seconds:ttl};rawKey.fill(0);
   await api('create',{id:data.id,iv:data.iv,ciphertext:data.ciphertext,mode:data.mode,seconds:data.seconds});
   prepared={...data,url:location.origin+'/l/'+data.id+'#k='+data.key};
+  show('webNewLetter',true);
   $('webShareLink').value=prepared.url;
   try{const all=saved().filter(x=>x.id!==data.id);all.push({...data,createdAt:Date.now()});localStorage.setItem(cacheKey,JSON.stringify(all.slice(-5)));show('webSenderButton',true);}catch{show('webSenderButton',false);}
   return prepared;
@@ -125,6 +127,7 @@ const webApp=(()=>{
  $('webMessage').oninput=invalidate;
  for(const name of timeIds)$(name).onchange=invalidate;
  $('composeHome').onclick=()=>{if(!busy)home();};
+ $('webNewLetter').onclick=()=>{if(busy)return;clearPreview();$('webMessage').value='';invalidate();show('webNewLetter',false);begin();};
  $('composeSend').onclick=async()=>{
   if(busy||!canCompose)return;
   if(!$('webMessage').value.trim()){say('편지 내용을 입력해 주세요.',true);$('webMessage').focus();return;}

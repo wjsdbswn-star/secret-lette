@@ -8,7 +8,7 @@ import {landingResponse} from '../worker/src/landing.js';
 import {decryptLetter,parseIncomingLink} from '../mobile/src/letter.js';
 
 const origin='https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
-async function app({installed=false,userAgent='iPhone',maxTouchPoints=0,storage=new Map(),pathname='/',hash='',search='',shareFailure=null,clipboardFailure=false,db=null}={}){
+async function app({installed=false,userAgent='iPhone',maxTouchPoints=0,storage=new Map(),pathname='/',hash='',search='',shareFailure=null,clipboardFailure=false,db=null,confirmOpen=false,cryptoImpl=webcrypto}={}){
  const sqlite=db||new DatabaseSync(':memory:');
  const DB={prepare(sql){const q=sqlite.prepare(sql);return {bind(...v){return {async run(){return q.run(...v)},async first(){return q.get(...v)||null},async all(){return {results:q.all(...v)}}}}}}};
  const elements={},events={},requests=[],shares=[],copies=[],navigations=[],timers=new Map();let nextTimer=1;
@@ -25,14 +25,29 @@ async function app({installed=false,userAgent='iPhone',maxTouchPoints=0,storage=
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
  const nav={standalone:installed,userAgent,maxTouchPoints,share:async data=>{shares.push(data);if(shareFailure)throw shareFailure},clipboard:{writeText:async text=>{if(clipboardFailure)throw Error('clipboard denied');copies.push(text)}}};
  const context={document,localStorage,navigator:nav,window:{navigator:nav,addEventListener(type,fn){(events[type]??=[]).push(fn)}},location:{origin,pathname,hash,search,assign:value=>navigations.push(value)},
-  URL,URLSearchParams,crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,atob,btoa,AbortController,Blob,
-  history:{replaceState(){}},performance,setTimeout,clearTimeout,setInterval:fn=>{const id=nextTimer++;timers.set(id,fn);return id},clearInterval:id=>timers.delete(id),confirm:()=>false,
+  URL,URLSearchParams,crypto:cryptoImpl,TextEncoder,TextDecoder,Uint8Array,atob,btoa,AbortController,Blob,
+  history:{replaceState(){}},performance,setTimeout,clearTimeout,setInterval:fn=>{const id=nextTimer++;timers.set(id,fn);return id},clearInterval:id=>timers.delete(id),confirm:()=>confirmOpen,
   fetch:async(path,options)=>{requests.push({path,payload:options?.body?JSON.parse(options.body):null});return worker.fetch(new Request(origin+path,options),{DB})},
  };
  vm.runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  return {e:elements,requests,shares,copies,storage,sqlite,document,events,timers,nav,navigations,DB};
 }
 const receive=(a,id)=>worker.fetch(new Request(origin+'/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}),{DB:a.DB});
+test('다른 브라우저에서 보낸 사람이 취소하면 소비하지 않고 아이폰 수신자는 읽는다',async()=>{
+ const sender=await app();await draft(sender,'발신자 실수 방지');await sender.e.composeSend.onclick();const url=new URL(sender.shares[0].url);
+ const accidental=await app({db:sender.sqlite,pathname:url.pathname,hash:url.hash});await accidental.e.open.onclick();assert.equal(accidental.requests.length,0);
+ const recipient=await app({db:sender.sqlite,pathname:url.pathname,hash:url.hash,confirmOpen:true});await recipient.e.open.onclick();assert.equal(recipient.e.letter.textContent,'발신자 실수 방지');
+});
+test('암호화가 막힌 브라우저는 1회 열람 API를 호출하기 전에 중단한다',async()=>{
+ const sender=await app();await draft(sender,'브라우저 지원 오류');await sender.e.composeSend.onclick();const url=new URL(sender.shares[0].url);
+ const blocked=await app({db:sender.sqlite,pathname:url.pathname,hash:url.hash,confirmOpen:true,cryptoImpl:{}});await blocked.e.open.onclick();assert.equal(blocked.requests.length,0);assert.match(blocked.e.notice.textContent,/Safari/);
+ assert.equal((await receive(sender,url.pathname.split('/').pop())).status,200);
+});
+test('웹에서도 새 편지 쓰기는 앞선 편지를 유지하고 새 링크를 만든다',async()=>{
+ const a=await app();await draft(a,'첫 번째');await a.e.composeSend.onclick();const first=a.shares[0].url;
+ assert.equal(a.e.webNewLetter.classList.contains('hidden'),false);a.e.webNewLetter.onclick();assert.equal(a.e.webMessage.value,'');assert.equal(a.e.webShareLink.value,'');
+ a.e.webMessage.value='두 번째';a.e.webMessage.oninput();await a.e.composeSend.onclick();assert.notEqual(a.shares[1].url,first);assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
+});
 async function draft(a,text){a.e.send.onclick();a.e.webMessage.value=text;a.e.webMessage.oninput();}
 function choose(a,mode){a.e.webSingle.checked=mode==='single';a.e.webGroup.checked=mode==='group';(mode==='single'?a.e.webSingle:a.e.webGroup).onchange();}
 

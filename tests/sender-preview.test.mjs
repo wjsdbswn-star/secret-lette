@@ -48,5 +48,6 @@ test('받는 웹페이지에 발신자용 앱 링크가 있으며 누르는 것�
  assert.match(html,/id="senderJump"/);
  assert.match(html,/secretletter:\/\/sent\//);
  assert.match(html,/보낸 사람/);
- assert.match(html,/받은 사람용 열기 버튼을 누르면 수신자의 1회 열람이 사라집니다/);
+ assert.match(html,/「열기」는 수신자의 1회 열람을 사용합니다/);
 });
+

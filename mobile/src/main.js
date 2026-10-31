@@ -92,6 +92,11 @@ function updateOptionsLabel(){
  $('send').textContent='보내기';
 }
 function clearReady(){updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
+$('newLetter').addEventListener('click',()=>{
+ if($('send').disabled)return;
+ $('message').value='';$('count').textContent='0 / 1600자';clearReady();status('sendState','');
+ $('newLetter').classList.add('hidden');page('compose');$('message').focus();
+});
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
 function setMode(next){
@@ -149,6 +154,7 @@ async function sendSelected(){
     await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
     prepared=buildShareLink(webBase(),data.id,data.key);
     preparedId=data.id;
+    $('newLetter').classList.remove('hidden');
     // 기기 안에 암호문과 키를 15분간 임시 저장합니다. 서버에 평문/키를 보내지 않습니다.
     try{rememberSent(data);$('senderPreviewButton').classList.remove('hidden');}
     catch{status('sendState','공유는 가능하지만 이 기기의 미리보기 저장은 사용할 수 없습니다.',true);}
@@ -218,7 +224,9 @@ async function receiveLink(url){
   stopReading(false);
   $('before').classList.remove('hidden');$('after').classList.add('hidden');
   try{
-    const parsed=parseIncomingLink(url,webBase());incoming=parsed;
+    const parsed=parseIncomingLink(url,webBase());
+    if(lookupSent(parsed.id))return showSentPreview(parsed.id);
+    incoming=parsed;
     $('open').disabled=false;
     $('readerHint').textContent='열람 버튼을 누르면 소멸시간이 시작되거나 남은 시간이 적용됩니다.';
     status('readerState','받은 비밀편지입니다. 열 준비가 되면 버튼을 누르세요.');page('reader');
@@ -226,6 +234,7 @@ async function receiveLink(url){
 }
 $('open').addEventListener('click',async()=>{
   if(!incoming)return;
+  if(lookupSent(incoming.id)){const id=incoming.id;incoming=null;return showSentPreview(id);}
   $('open').disabled=true;status('readerState','비밀편지를 여는 중입니다…');
   try {
     const requestedAt=performance.now();
@@ -279,8 +288,8 @@ if(native){
   // WebView visibilitychange만으로는 모든 기기의 앱 전환을 감지하지 못할 수 있습니다.
   // 네이티브 백그라운드 전환에서도 편지 화면을 즉시 닫습니다.
   App.addListener('appStateChange',({isActive})=>{if(!isActive){if(watch)stopReading();if(!$('sender').classList.contains('hidden'))closeSentPreview();}});
-  const incomingUrl=url=>{const compose=String(url).match(/^secretletter:\/\/compose(?:\/(single|group))?\/?$/);if(compose){if(compose[1])setMode(compose[1]);page('compose');return;}const senderId=parseSentDeepLink(url);if(senderId)showSentPreview(senderId);else receiveLink(url);};
-  App.addListener('appUrlOpen',e=>{if(e?.url)incomingUrl(e.url);});
+  const incomingUrl=url=>{const compose=String(url).match(/^secretletter:\/\/compose(?:\/(single|group))?\/?$/);if(compose){if(compose[1])setMode(compose[1]);page('compose');return;}const senderId=parseSentDeepLink(url);if(senderId)return showSentPreview(senderId);return receiveLink(url);};
+  App.addListener('appUrlOpen',e=>{if(e?.url)return incomingUrl(e.url);});
   App.getLaunchUrl().then(x=>{if(x?.url)incomingUrl(x.url);}).catch(()=>{});
 }
 // 브라우저에서는 개발 서버에서만 기능 시험. 공개된 웹 수신 페이지에는 이 코드를 배포하지 않습니다.

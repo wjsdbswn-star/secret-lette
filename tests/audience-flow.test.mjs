@@ -83,3 +83,19 @@ test('열람 방식을 체크하는 것만으로 공유하지 않고 글을 보�
  e.message.value='아직 보내지 않은 글';await e.message.fire('input');e.chooseGroup.checked=true;await e.chooseGroup.fire('change');
  assert.equal(e.chooseSingle.checked,false);assert.equal(e.message.value,'아직 보내지 않은 글');assert.equal(a.requests.length,0);assert.equal(a.shares.length,0);
 });
+test('자기가 보낸 링크를 앱으로 열거나 붙여넣어도 수신자의 1회를 쓰지 않는다',async()=>{
+ const a=app(),e=a.elements;e.message.value='아이폰 친구에게 보낼 편지';await e.send.fire('click');
+ const url=a.shares[0].url,parsed=letter.parseIncomingLink(url,'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/');
+ await a.appEvents.appUrlOpen({url});assert.equal(e.senderPlain.textContent,e.message.value);
+ await e.senderClose.fire('click');e.pasteLink.value=url;await e.pasteLink.fire('input');await e.open.fire('click');
+ assert.equal(e.senderPlain.textContent,e.message.value);assert.equal(a.requests.some(r=>r.url.endsWith('/open')),false);
+ const response=await worker.fetch(new Request('https://test.example/v10/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:parsed.id})}),{DB:a.DB});
+ assert.equal(response.status,200);assert.equal(await letter.decryptLetter(await response.json(),parsed.key,parsed.id),e.message.value);
+});
+test('새 편지 쓰기는 앞선 편지를 보존하고 빈 작성 화면에서 다른 링크를 만든다',async()=>{
+ const a=app(),e=a.elements;e.message.value='첫 편지';await e.send.fire('click');const first=a.shares[0].url;
+ assert.equal(e.newLetter.classList.contains('hidden'),false);await e.newLetter.fire('click');
+ assert.equal(e.message.value,'');assert.equal(e.count.textContent,'0 / 1600자');assert.equal(e.shareLink.value,'');assert.equal(e.senderPreviewButton.classList.contains('hidden'),true);
+ e.message.value='두 번째 편지';await e.send.fire('click');assert.notEqual(a.shares[1].url,first);
+ assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
+});
