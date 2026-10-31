@@ -26,8 +26,8 @@ ${WEB_APP_STYLE}</style></head><body><main><section class="shell">
 <a id="senderJump" class="text-link hidden" rel="noopener noreferrer" href="#">보낸 편지 확인</a>
 <p id="senderGuide" class="small hidden">보낸 사람은 「보낸 편지 확인」을 누르세요. 「열기」는 수신자의 1회 열람을 사용합니다.</p>
 <div id="linkPanel" class="hidden"><form id="linkForm"><label class="sr-only" for="linkInput">받은 편지 링크</label><div class="link-row"><input id="linkInput" type="url" placeholder="받은 링크를 붙여넣으세요" required autocomplete="off" autocapitalize="off" spellcheck="false"><button class="secondary" type="submit">확인</button></div></form><p class="small link-help">앱 설치 없이 웹에서 읽을 수 있습니다.</p></div>
-<div id="during" class="hidden"><p id="time"></p><div id="letter"></div><button id="close" class="secondary" type="button">닫기</button>
-<details class="report-details"><summary>도움</summary><p id="reportInfo">협박·괴롭힘 등 피해를 받았다면 편지를 닫기 전에 증거 보관을 요청할 수 있습니다. 제출된 편지와 열람키는 20일간 별도 보관됩니다. 자동으로 수사기관에 신고되지는 않습니다.</p><button id="report" class="report hidden" type="button">신고하기 (20일 보관)</button></details></div>
+<div id="during" class="hidden"><p id="time"></p><div id="letter"></div>
+<div id="reportPanel" class="report-details hidden"><button id="report" class="report hidden" type="button">신고하기</button><p id="reportInfo">신고하면 해당 편지와 열람키를 서버에만 20일간 보관합니다. 수사기관에 자동 신고되지는 않습니다.</p></div><button id="close" class="secondary" type="button">닫기</button></div>
 <p id="notice" role="status" aria-live="polite"></p>
 <a id="homeJump" class="text-link hidden" href="/">처음으로</a>
 ${WEB_APP_MARKUP}
@@ -86,13 +86,13 @@ let watch=null,plainShown=false,reportEvidence=null;
 const base64url=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4)),ch=>ch.charCodeAt(0));
 const close=()=>{
  if(watch){clearInterval(watch);watch=null;}
- plainShown=false;reportEvidence=null;$('actions').classList.add('hidden');$('senderJump').classList.add('hidden');$('homeJump').classList.remove('hidden');$('letter').textContent='';$('report').classList.add('hidden');$('during').classList.add('hidden');$('open').classList.add('hidden');
+ plainShown=false;reportEvidence=null;$('reportPanel').classList.add('hidden');$('actions').classList.add('hidden');$('senderJump').classList.add('hidden');$('homeJump').classList.remove('hidden');$('letter').textContent='';$('report').classList.add('hidden');$('during').classList.add('hidden');$('open').classList.add('hidden');
  $('hint').classList.remove('hidden');$('hint').textContent='편지가 닫혔습니다.';$('notice').textContent='';
 };
 $('close').onclick=close;
 $('report').onclick=async()=>{
  if(!reportEvidence)return;
- if(!confirm('읽은 편지의 암호문과 열람키를 20일간 별도 보관합니다. 운영자가 보관된 편지를 복호화할 수 있고, 적법한 절차에 따라 제출될 수 있습니다. 계속할까요?'))return;
+ if(!confirm('신고된 편지와 열람키를 서버에만 20일간 보관합니다. 운영자가 보관된 편지를 복호화할 수 있고, 적법한 절차에 따라 제출될 수 있습니다. 계속할까요?'))return;
  $('report').disabled=true;
  $('notice').textContent='증거 보관 요청 중…';
  try{
@@ -100,9 +100,8 @@ $('report').onclick=async()=>{
      body:JSON.stringify(reportEvidence),cache:'no-store'});
    const data=await r.json();
    if(!r.ok)throw Error(data.error||'보관 실패');
-   $('notice').textContent='20일 증거 보관 접수 완료. 확인번호: '+data.reportId+
-     ' / 수사기관에 자동 신고되는 것은 아닙니다.';
-   $('report').classList.add('hidden');
+   $('notice').textContent='20일 증거 보관 접수 완료. 신고 자료는 서버에만 20일간 보관됩니다. 확인번호: '+data.reportId;
+   $('report').textContent='신고 접수 완료';
    reportEvidence=null;
  }catch(e){
    $('notice').textContent='증거 보관 실패: '+(e?.message||'다시 시도해 주세요.');
@@ -137,7 +136,7 @@ $('open').onclick=async()=>{
   if(record.reportToken && endpoint==='/v10/open'){
    reportEvidence={id,reportToken:record.reportToken,key:secret,mode:record.mode,
      durationSeconds:record.durationSeconds,iv:record.iv,ciphertext:record.ciphertext};
-   $('report').disabled=false;$('report').classList.remove('hidden');
+   $('report').disabled=false;$('report').textContent='신고하기';$('report').classList.remove('hidden');$('reportPanel').classList.remove('hidden');
   }
   new Uint8Array(raw).fill(0);
   $('actions').classList.add('hidden');$('senderJump').classList.add('hidden');$('open').classList.add('hidden');$('hint').classList.add('hidden');

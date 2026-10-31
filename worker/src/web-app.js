@@ -21,7 +21,7 @@ export const WEB_APP_MARKUP = `<section id="webCompose" class="compose-panel hid
 <fieldset id="webReadModes" class="read-mode"><legend class="sr-only">열람 방식</legend><label for="webSingle"><input id="webSingle" type="radio" name="webReadMode" value="single" checked>1회 시간제한</label><label for="webGroup"><input id="webGroup" type="radio" name="webReadMode" value="group">시간만 제한</label></fieldset>
 <details class="time-options"><summary>읽는 시간 <span id="webDuration">1분</span></summary><div class="time-grid">${select('webDays','일',30)}${select('webHours','시간',23)}${select('webMinutes','분',59,1)}${select('webSeconds','초',59)}</div></details>
 <button id="composeSend" class="primary compose-send" type="button">보내기</button>
-<button id="webNewLetter" class="secondary compose-send hidden" type="button" style="margin-top:10px">새 편지 쓰기</button>
+<button id="webReshare" class="text-link hidden" type="button">같은 편지 다시 공유</button>
 <p id="webSendState" class="compose-state" role="status" aria-live="polite"></p>
 <div id="webReady" class="share-fallback hidden"><button id="webShare" class="primary" type="button">공유하기</button><button id="webCopy" class="secondary" type="button">링크 복사</button><label class="sr-only" for="webShareLink">보낼 편지 링크</label><input id="webShareLink" readonly autocomplete="off" spellcheck="false"></div>
 <button id="webSenderButton" class="text-link hidden" type="button">보낸 편지 확인</button>
@@ -39,7 +39,7 @@ const webApp=(()=>{
  const canCompose=installed||apple||query.get('app')==='1'||query.get('ios')==='1'||query.get('install')==='ios';
  const cacheKey='secretletter-sent-preview-v1',previewMs=15*60*1000;
  const timeIds=['webDays','webHours','webMinutes','webSeconds'];
- let mode='single',prepared=null,busy=false,senderId=null,senderTimer=null,previewEpoch=0;
+ let mode='single',prepared=null,busy=false,senderId=null,senderTimer=null,previewEpoch=0,shared=false;
  const show=(name,on)=>$(name).classList[on?'remove':'add']('hidden');
  const say=(text,bad=false)=>{$('webSendState').textContent=text;$('webSendState').classList[bad?'add':'remove']('bad');};
  function saved(){
@@ -64,7 +64,7 @@ const webApp=(()=>{
  }
  const seconds=()=>timeIds.reduce((total,name,i)=>total+Number($(name).value)*[86400,3600,60,1][i],0);
  function invalidate(){
-  prepared=null;show('webReady',false);show('webSenderButton',false);$('webShareLink').value='';say('');
+  shared=false;prepared=null;show('webReady',false);show('webSenderButton',false);show('webReshare',false);$('composeSend').textContent='보내기';$('webShareLink').value='';say('');
   $('webCount').textContent=$('webMessage').value.length+' / 1600자';
   let left=seconds();const parts=[];
   for(const [label,size] of [['일',86400],['시간',3600],['분',60],['초',1]]){const n=Math.floor(left/size);left%=size;if(n)parts.push(n+label);}
@@ -92,18 +92,18 @@ const webApp=(()=>{
   const data={id:letterId,key:encode(rawKey),iv:encode(iv),ciphertext:encode(new Uint8Array(encrypted)),mode,seconds:ttl};rawKey.fill(0);
   await api('create',{id:data.id,iv:data.iv,ciphertext:data.ciphertext,mode:data.mode,seconds:data.seconds});
   prepared={...data,url:location.origin+'/l/'+data.id+'#k='+data.key};
-  show('webNewLetter',true);
   $('webShareLink').value=prepared.url;
   try{const all=saved().filter(x=>x.id!==data.id);all.push({...data,createdAt:Date.now()});localStorage.setItem(cacheKey,JSON.stringify(all.slice(-5)));show('webSenderButton',true);}catch{show('webSenderButton',false);}
   return prepared;
  }
  function fallback(text){show('webReady',true);show('webShare',typeof nav.share==='function');$('webShareLink').value=prepared?.url||'';say(text,true);}
+ function markShared(){shared=true;$('composeSend').textContent='새 편지 쓰기';show('webReshare',true);}
  async function share(){
   if(!prepared)return;
   try{
    if(typeof nav.share!=='function')throw Error('공유 메뉴를 사용할 수 없습니다.');
    await nav.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요. 앱 설치 없이 읽어보세요.',url:prepared.url});
-   show('webReady',false);say('공유 화면을 닫았습니다. 실제로 전송했는지 확인해 주세요.');
+   markShared();show('webReady',false);say('공유 화면을 닫았습니다. 실제로 전송했는지 확인해 주세요.');
   }catch(e){
    if(e.name==='AbortError'){show('webReady',false);say('공유를 취소했습니다. 다시 보내면 같은 링크로 공유합니다.');}
    else fallback(typeof nav.share==='function'?'아래 공유하기를 눌러 보낼 앱을 선택해 주세요.':'아래 링크 복사를 눌러 보내 주세요.');
@@ -111,10 +111,10 @@ const webApp=(()=>{
  }
  async function copy(){
   if(!prepared)return;
-  try{await nav.clipboard.writeText(prepared.url);show('webReady',false);say('링크를 복사했습니다.');}
+  try{await nav.clipboard.writeText(prepared.url);markShared();show('webReady',false);say('링크를 복사했습니다.');}
   catch{fallback('링크 복사를 다시 누르거나, 아래 링크를 길게 눌러 복사해 주세요.');$('webShareLink').focus();$('webShareLink').select();}
  }
- function lock(on){busy=on;for(const name of ['composeSend','webMessage',...timeIds,'webSingle','webGroup'])$(name).disabled=on;}
+ function lock(on){busy=on;for(const name of ['composeSend','webReshare','webMessage',...timeIds,'webSingle','webGroup'])$(name).disabled=on;}
  async function sendSelected(selected){
   if(busy||!canCompose)return;
   lock(true);say('비밀편지를 준비하는 중입니다…');
@@ -127,9 +127,10 @@ const webApp=(()=>{
  $('webMessage').oninput=invalidate;
  for(const name of timeIds)$(name).onchange=invalidate;
  $('composeHome').onclick=()=>{if(!busy)home();};
- $('webNewLetter').onclick=()=>{if(busy)return;clearPreview();$('webMessage').value='';invalidate();show('webNewLetter',false);begin();};
+ $('webReshare').onclick=()=>sendSelected(mode);
  $('composeSend').onclick=async()=>{
   if(busy||!canCompose)return;
+  if(shared){clearPreview();$('webMessage').value='';invalidate();begin();return;}
   if(!$('webMessage').value.trim()){say('편지 내용을 입력해 주세요.',true);$('webMessage').focus();return;}
   if(seconds()<1||seconds()>2678399){say('읽는 시간을 1초 이상 설정해 주세요.',true);return;}
   await sendSelected(mode);

@@ -17,7 +17,7 @@
  <p class="safety-note">⚠️ 받은 사람이 피해 증거 보관을 요청하면 제출된 편지와 열람키가 20일간 별도 보관될 수 있습니다. 협박·괴롭힘 등 위법행위에는 법적 책임이 따를 수 있습니다.</p>
  </div></details>
  <button id="send" class="primary" type="button">보내기</button>
- <button id="newLetter" class="secondary hidden" type="button" style="width:100%;margin-top:10px">새 편지 쓰기</button>
+ <button id="reshare" class="text-button hidden" type="button" style="width:100%">같은 편지 다시 공유</button>
 
  <p id="sendState" class="status" role="status"></p>
  <button id="senderPreviewButton" class="text-button hidden" type="button" style="width:100%">보낸 편지 확인</button>
@@ -35,6 +35,7 @@
  <button id="open" class="primary" disabled type="button">열기</button></div>
  <div id="during" class="hidden"><div class="timer" id="timer">00:00:00</div><div class="meter"><div id="meterFill"></div></div>
  <div id="plain" class="letter" style="margin-top:17px"></div><p class="small">다른 화면으로 이동하면 표시된 편지는 닫힙니다.</p>
+ <div id="reportPanel" class="hidden"><button id="report" class="secondary" style="width:100%;margin-top:12px" type="button">신고하기</button><p id="reportInfo" class="small">신고하면 해당 편지와 열람키를 서버에만 20일간 보관합니다.</p><p id="reportState" class="status" role="status"></p></div>
  <button id="close" class="secondary" style="width:100%;margin-top:15px" type="button">닫기</button></div>
  <div id="after" class="hidden"><div class="gone">편지가 닫혔습니다.</div><p class="muted">만료되었거나 열람이 완료된 편지는 다시 열 수 없을 수 있습니다.</p></div>
  <p id="readerState" class="status" role="status"></p>
@@ -48,6 +49,6 @@
 </details>
 <section id="offlinePanel" class="panel hidden"><h2>먼저 앱 작동 확인</h2><p class="small">서버 연결 전에도 휴대전화의 암호화 기능을 시험할 수 있습니다. 서버에 글을 보내지 않습니다.</p><button id="offlineDemo" class="secondary" type="button" style="width:100%">🔒 오프라인 암호화 시험</button><p id="offlineState" class="status" role="status"></p></section>
 <details class="hidden"><summary>시험판 보안 안내</summary><p class="small">서버에는 암호문과 만료 정보가 저장됩니다. 링크를 가진 누구나 열람을 시도할 수 있습니다. 1회 열람은 처음 요청을 보낸 사람에게 적용되며 수신자 확인은 하지 않습니다. 캡처·복사·기기 악성코드·외부 메신저에 남은 기록을 삭제할 수 없습니다. 실제 민감한 내용을 보내지 마세요.</p></details>
-<div class="version">v10.15</div>
+<div class="version">v10.16</div>
 </main><script type="module" src="/src/main.js"></script></body></html>
 

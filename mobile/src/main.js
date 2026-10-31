@@ -11,7 +11,7 @@ const $=id=>document.getElementById(id);
 const DEFAULT_WEB=import.meta.env.VITE_WEB_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev/';
 const DEFAULT_API=import.meta.env.VITE_API_BASE || 'https://secret-letter-mobile-v10.wjsdbswn.workers.dev';
 const KEY='secretletter-v10-api', WEB_KEY='secretletter-v10-web';
-let mode='single',prepared=null,preparedId=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0;
+let mode='single',prepared=null,preparedId=null,incoming=null,watch=null,expiresAt=0,serverAt=0,startedAt=0,shared=false,reportEvidence=null;
 const SERVICE_CONFIG_URL='https://raw.githubusercontent.com/wjsdbswn-star/secret-lette/main/server-config.json';
 let serviceConfigPromise=null;
 const native=Capacitor.isNativePlatform();
@@ -89,14 +89,15 @@ function updateOptionsLabel(){
   const value=Math.floor(left/size);left%=size;if(value)parts.push(value+unit);
  }
  $('optionsLabel').textContent=parts.join(' ')||'0초';
- $('send').textContent='보내기';
+ $('send').textContent=shared?'새 편지 쓰기':'보내기';
 }
-function clearReady(){updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');}
-$('newLetter').addEventListener('click',()=>{
+function clearReady(){shared=false;updateOptionsLabel();prepared=null;preparedId=null;$('ready').classList.add('hidden');$('shareLink').value='';$('senderPreviewButton').classList.add('hidden');$('reshare').classList.add('hidden');}
+function markShared(){shared=true;updateOptionsLabel();$('reshare').classList.remove('hidden');}
+function startNewLetter(){
  if($('send').disabled)return;
  $('message').value='';$('count').textContent='0 / 1600자';clearReady();status('sendState','');
- $('newLetter').classList.add('hidden');page('compose');$('message').focus();
-});
+ page('compose');$('message').focus();
+}
 $('message').addEventListener('input',()=>{$('count').textContent=$('message').value.length+' / 1600자';clearReady();});
 for(const id of ['days','hours','minutes','seconds'])$(id).addEventListener('change',clearReady);
 function setMode(next){
@@ -113,6 +114,7 @@ async function copyPrepared(){
  try{
   if(native)await Clipboard.write({string:prepared});else await navigator.clipboard.writeText(prepared);
   $('ready').classList.add('hidden');
+  markShared();
   status('sendState','링크를 복사했습니다.');
  }catch{
   $('ready').classList.remove('hidden');$('shareLink').focus();$('shareLink').select();
@@ -126,6 +128,7 @@ async function sharePrepared(){
     else if(navigator.share)await navigator.share({title:'비밀편지',text:'✉️ 비밀편지가 도착했어요.\n앱 설치 없이 웹에서 읽어보세요.',url:prepared});
     else throw Error('공유 메뉴를 사용할 수 없습니다.');
     $('ready').classList.add('hidden');
+    markShared();
     status('sendState','공유 화면을 닫았습니다. 실제로 전송했는지 확인해 주세요.');
   }catch(e){
     if(e?.name==='AbortError'){
@@ -154,7 +157,6 @@ async function sendSelected(){
     await request('create',{id:data.id,mode:data.mode,seconds:data.seconds,iv:data.iv,ciphertext:data.ciphertext});
     prepared=buildShareLink(webBase(),data.id,data.key);
     preparedId=data.id;
-    $('newLetter').classList.remove('hidden');
     // 기기 안에 암호문과 키를 15분간 임시 저장합니다. 서버에 평문/키를 보내지 않습니다.
     try{rememberSent(data);$('senderPreviewButton').classList.remove('hidden');}
     catch{status('sendState','공유는 가능하지만 이 기기의 미리보기 저장은 사용할 수 없습니다.',true);}
@@ -165,12 +167,14 @@ async function sendSelected(){
   finally{btn.disabled=false;for(const id of ['message','days','hours','minutes','seconds','chooseSingle','chooseGroup'])$(id).disabled=false;}
 }
 $('send').addEventListener('click',async()=>{
+ if(shared){startNewLetter();return;}
  if(!$('message').value.trim()){status('sendState','편지 내용을 입력해 주세요.',true);$('message').focus();return;}
  const sec=timeSeconds();
  if(sec<1||sec>MAX_SECONDS){status('sendState','읽는 시간을 1초 이상 설정해 주세요.',true);return;}
  await sendSelected();
 });
 $('copy').addEventListener('click',copyPrepared);
+$('reshare').addEventListener('click',sendSelected);
 // 발신자 앱에서만 원본 암호문+키를 확인하며 수신용 /v10/open은 호출하지 않습니다.
 async function showSentPreview(id){
   page('compose');
@@ -207,6 +211,7 @@ $('apiSave').addEventListener('click',async()=>{
   }catch(e){status('setupState','연결 실패: '+e.message,true);}finally{$('apiSave').disabled=false;}
 });
 function stopReading(showClosed=true){
+  reportEvidence=null;$('reportPanel').classList.add('hidden');status('reportState','');
   if(watch){clearInterval(watch);watch=null;}
   $('plain').textContent='';$('during').classList.add('hidden');
   if(showClosed){$('before').classList.add('hidden');$('after').classList.remove('hidden');}
@@ -246,6 +251,10 @@ $('open').addEventListener('click',async()=>{
     $('plain').textContent=content;
     $('during').dataset.seconds=result.durationSeconds;
     $('before').classList.add('hidden');$('after').classList.add('hidden');$('during').classList.remove('hidden');
+    if(result.reportToken){
+      reportEvidence={id:incoming.id,key:incoming.key,reportToken:result.reportToken,mode:result.mode,durationSeconds:result.durationSeconds,iv:result.iv,ciphertext:result.ciphertext};
+      $('report').disabled=false;$('report').textContent='신고하기';status('reportState','');$('reportPanel').classList.remove('hidden');
+    }
     expiresAt=result.deadlineAt;serverAt=result.serverNow;startedAt=requestedAt;
     watch=setInterval(tick,150);tick();status('readerState','');
     incoming=null; // 앱에서 열람 후 링크를 보관하지 않음
@@ -253,6 +262,17 @@ $('open').addEventListener('click',async()=>{
   finally{$('open').disabled=false;}
 });
 $('close').addEventListener('click',()=>stopReading());
+$('report').addEventListener('click',async()=>{
+ const evidence=reportEvidence;if(!evidence||$('report').disabled)return;
+ if(!confirm('신고된 편지와 열람키를 서버에만 20일간 보관합니다. 운영자가 복호화할 수 있으며 수사기관에 자동 신고되지는 않습니다. 보관할까요?'))return;
+ $('report').disabled=true;status('reportState','신고 자료를 보관하는 중입니다…');
+ try{
+  await request('report',evidence);
+  if(reportEvidence!==evidence)return;
+  reportEvidence=null;$('report').textContent='신고 접수 완료';
+  status('reportState','신고 접수 완료. 신고 자료는 서버에만 20일간 보관됩니다.');
+ }catch(e){if(reportEvidence===evidence){$('report').disabled=false;status('reportState','신고 실패: '+e.message,true);}}
+});
 $('reply').addEventListener('click',()=>page('compose'));
 $('homeButton').addEventListener('click',()=>page('home'));
 $('goCompose').addEventListener('click',()=>{page('compose');$('message').focus();});

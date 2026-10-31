@@ -58,8 +58,12 @@ test('편지를 받으면 앱 없이 브라우저에서 복호화하고 최초 �
  assert.equal(elements.open.classList.contains('hidden'),true);
  assert.equal(typeof callbacks.tick,'function');
  assert.equal(elements.report.classList.contains('hidden'),false);
+ assert.equal(elements.reportPanel.classList.contains('hidden'),false);
+ assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM reports_v10').bind().first()).n,0);
+ assert.doesNotMatch(html,/<details[^>]*>[\s\S]*?id="report"[\s\S]*?<\/details>/);
  await elements.report.onclick();
  assert.match(elements.notice.textContent,/20일 증거 보관 접수 완료/);
+ assert.match(elements.notice.textContent,/서버에만 20일간 보관/);assert.equal(elements.report.disabled,true);
  elements.close.onclick();
  assert.equal(elements.letter.textContent,'');
  const retry=await worker.fetch(new Request('https://letter.test/v10/open',{

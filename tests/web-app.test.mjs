@@ -45,7 +45,7 @@ test('암호화가 막힌 브라우저는 1회 열람 API를 호출하기 전에
 });
 test('웹에서도 새 편지 쓰기는 앞선 편지를 유지하고 새 링크를 만든다',async()=>{
  const a=await app();await draft(a,'첫 번째');await a.e.composeSend.onclick();const first=a.shares[0].url;
- assert.equal(a.e.webNewLetter.classList.contains('hidden'),false);a.e.webNewLetter.onclick();assert.equal(a.e.webMessage.value,'');assert.equal(a.e.webShareLink.value,'');
+ assert.equal(a.e.webNewLetter,undefined);assert.equal(a.e.composeSend.textContent,'새 편지 쓰기');await a.e.composeSend.onclick();assert.equal(a.e.webMessage.value,'');assert.equal(a.e.webShareLink.value,'');assert.equal(a.shares.length,1);assert.equal(a.e.composeSend.textContent,'보내기');
  a.e.webMessage.value='두 번째';a.e.webMessage.oninput();await a.e.composeSend.onclick();assert.notEqual(a.shares[1].url,first);assert.equal(a.sqlite.prepare('SELECT COUNT(*) AS n FROM letters_v10').get().n,2);
 });
 async function draft(a,text){a.e.send.onclick();a.e.webMessage.value=text;a.e.webMessage.oninput();}
@@ -65,7 +65,7 @@ test('아이폰 웹앱에서 한 명 공유: 원문·키는 서버에 보내지 
  for(const value of a.storage.values())assert.ok(!value.includes('아이폰 한 명 시험'));
 });
 test('시간만 제한은 다른 앱의 공유창을 열고 같은 링크와 공통 종료 시각을 유지한다',async()=>{
- const a=await app();await draft(a,'아이폰 시간만 제한 시험');choose(a,'group');assert.equal(a.requests.length,0);await a.e.composeSend.onclick();await a.e.composeSend.onclick();
+ const a=await app();await draft(a,'아이폰 시간만 제한 시험');choose(a,'group');assert.equal(a.requests.length,0);await a.e.composeSend.onclick();await a.e.webReshare.onclick();
  assert.equal(a.shares.length,2);assert.equal(a.copies.length,0);assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.requests.filter(r=>r.path==='/v10/create').length,1);
  const parsed=parseIncomingLink(a.shares[0].url,origin+'/');const first=await (await receive(a,parsed.id)).json(),second=await (await receive(a,parsed.id)).json();assert.equal(first.mode,'group');assert.equal(first.deadlineAt,second.deadlineAt);assert.equal(await decryptLetter(second,parsed.key,parsed.id),'아이폰 시간만 제한 시험');
 });
@@ -73,6 +73,11 @@ test('공유 권한이나 복사가 막혀도 생성된 링크를 보존해 버�
  const a=await app({shareFailure:{name:'NotAllowedError'}});await draft(a,'공유 권한 재시도');await a.e.composeSend.onclick();assert.equal(a.e.webReady.classList.contains('hidden'),false);assert.equal(a.e.webShare.classList.contains('hidden'),false);
  const url=a.e.webShareLink.value;await a.e.webShare.onclick();assert.equal(a.shares[1].url,url);assert.equal(a.requests.filter(r=>r.path==='/v10/create').length,1);
  const b=await app({shareFailure:{name:'NotAllowedError'},clipboardFailure:true});await draft(b,'복사 재시도');choose(b,'group');await b.e.composeSend.onclick();assert.equal(b.e.webShare.classList.contains('hidden'),false);await b.e.webCopy.onclick();assert.match(b.e.webShareLink.value,/^https:/);assert.equal(b.e.webReady.classList.contains('hidden'),false);b.nav.clipboard.writeText=async value=>b.copies.push(value);await b.e.webCopy.onclick();assert.equal(b.copies[0],b.e.webShareLink.value);
+});
+test('웹 공유를 취소하면 새 편지로 바뀌지 않고 같은 링크로 재시도한다',async()=>{
+ const a=await app({shareFailure:{name:'AbortError'}});await draft(a,'보내지 못한 글');await a.e.composeSend.onclick();
+ assert.equal(a.e.composeSend.textContent,'보내기');assert.equal(a.e.webMessage.value,'보내지 못한 글');await a.e.composeSend.onclick();
+ assert.equal(a.shares[0].url,a.shares[1].url);assert.equal(a.requests.filter(r=>r.path==='/v10/create').length,1);
 });
 test('웹앱 발신자 확인과 같은 브라우저에서 자기 링크 열기는 수신자 열람을 소모하지 않는다',async()=>{
  const a=await app();await draft(a,'받는 사람보다 먼저 확인');await a.e.composeSend.onclick();await a.e.webSenderButton.onclick();assert.equal(a.e.webSenderPlain.textContent,'받는 사람보다 먼저 확인');assert.equal(a.requests.some(r=>r.path==='/v10/open'),false);
